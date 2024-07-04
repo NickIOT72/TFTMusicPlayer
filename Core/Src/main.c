@@ -69,10 +69,7 @@ uint16_t size = 0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   serialPrint(&huart2 , "%s\r\n", "Data Received:");
-  for( int i = 0; i < SEQ_SIZE_CMD; i++ )
-  {
-    serialPrint(&huart2 , "%x ", Rx3Data[i] & 0xff);
-  }
+  serialPrintHex( &huart2 , Rx3Data , SEQ_SIZE_CMD);
   serialPrint(&huart2 , "%s", "\r\n");
   dfpcms_readInfo( Rx3Data , SEQ_SIZE_CMD );
   HAL_UART_Receive_DMA(&huart3, Rx3Data, SEQ_SIZE_CMD);
@@ -116,6 +113,7 @@ int main(void)
   HAL_UART_Receive_DMA(&huart3, Rx3Data, SEQ_SIZE_CMD);
   serialPrint(&huart2 , "%s\r\n", "Start System");
   dfpcms_init( &huart3 , &huart2 );
+  uint8_t song = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -123,8 +121,10 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    dfpcms_getNumberOfSongs();
+    dfpcms_setSong(song);
     HAL_Delay(2000);
+    song += 5;
+    song %= 14;
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

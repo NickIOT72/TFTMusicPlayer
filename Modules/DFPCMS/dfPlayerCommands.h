@@ -14,6 +14,9 @@
 #define SETSONGFOLDER_CMD 0X39 
 #define GETNUMSONGS_CMD 0X3A 
 #define GETNUMFOLDERS_CMD 0X3B
+#define GETVOL_CMD 0X3C
+#define SETVOL_CMD 0X3D
+#define RESUME_CMD 0X3E
 
 /**
  * @brief
