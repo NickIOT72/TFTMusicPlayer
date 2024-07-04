@@ -8,5 +8,7 @@ void serialPrint( UART_HandleTypeDef *huart , const char *fmt, ...);
 void addRXSerialData(uint8_t* data, uint8_t size);
 uint8_t readSerial();
 bool serialAvailable();
+void serialPrintHex(UART_HandleTypeDef *huart , uint8_t* buffer, uint8_t len);
+
 
 #endif

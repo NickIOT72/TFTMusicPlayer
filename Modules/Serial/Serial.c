@@ -42,3 +42,11 @@ void serialPrint(UART_HandleTypeDef *huart ,const char *fmt, ...)
   int len = strlen(buffer);
   HAL_UART_Transmit(huart, (uint8_t*)buffer, len, HAL_MAX_DELAY);
 }
+
+void serialPrintHex(UART_HandleTypeDef *huart , uint8_t* buffer, uint8_t len)
+{
+	for( int i = 0; i < len; i++ )
+  {
+    serialPrint( huart , "%x ", buffer[i] & 0xff);
+  }
+}

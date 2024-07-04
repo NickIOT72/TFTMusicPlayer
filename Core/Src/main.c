@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Serial.h"
+#include "DFPCMS.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,19 +62,20 @@ static void MX_USART3_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t Rx3Data[15];
+uint8_t Rx3Data[SEQ_SIZE_CMD +1];
 int isSizeRxed = 0;
 uint16_t size = 0;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   serialPrint(&huart2 , "%s\r\n", "Data Received:");
-  for (size_t i = 0; i < 10; i++)
+  for( int i = 0; i < SEQ_SIZE_CMD; i++ )
   {
-    serialPrint(&huart2 , "%c", Rx3Data[i]);
+    serialPrint(&huart2 , "%x ", Rx3Data[i] & 0xff);
   }
   serialPrint(&huart2 , "%s", "\r\n");
-  HAL_UART_Receive_DMA(&huart3, Rx3Data, 10);
+  dfpcms_readInfo( Rx3Data , SEQ_SIZE_CMD );
+  HAL_UART_Receive_DMA(&huart3, Rx3Data, SEQ_SIZE_CMD);
 }
 
 /* USER CODE END 0 */
@@ -111,8 +113,9 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Receive_DMA(&huart3, Rx3Data, 10);
+  HAL_UART_Receive_DMA(&huart3, Rx3Data, SEQ_SIZE_CMD);
   serialPrint(&huart2 , "%s\r\n", "Start System");
+  dfpcms_init( &huart3 , &huart2 );
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -120,7 +123,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+    dfpcms_getNumberOfSongs();
+    HAL_Delay(2000);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
