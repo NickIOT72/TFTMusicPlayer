@@ -17,6 +17,7 @@
 #define GETVOL_CMD 0X3C
 #define SETVOL_CMD 0X3D
 #define RESUME_CMD 0X3E
+#define VOLSET_CMD 0X3F
 
 /**
  * @brief

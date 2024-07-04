@@ -112,19 +112,19 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_DMA(&huart3, Rx3Data, SEQ_SIZE_CMD);
   serialPrint(&huart2 , "%s\r\n", "Start System");
+  
   dfpcms_init( &huart3 , &huart2 );
-  uint8_t song = 0;
-  /* USER CODE END 2 */
+  HAL_Delay(50);
+
+  dfpcms_waitingInitication( );
+  dfpcms_waitingVolume( 10 );
+  dfpcms_waitingSetupSong( 1 );
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-    dfpcms_setSong(song);
-    HAL_Delay(2000);
-    song += 5;
-    song %= 14;
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

@@ -9,14 +9,14 @@ extern UART_HandleTypeDef huart3;
 uint8_t DFPCMS_sequence[6] = {START_BYTE,0,0,0,0,END_BYTE};
 
 uint8_t numberOfSongs = 0;
-
 uint8_t deviceVolume = 0;
 #define VOLUP_LIMIT 30
 #define VOLDOWN_LIMIT 0 
-
 uint8_t deviceEQ = 0;
-
 uint8_t deviceSong = 0;
+bool deviceInitializeze = false;
+
+bool waitingForUartResponse = false;
 
 void dfpcms_clearBuf( )
 {
@@ -27,7 +27,8 @@ void dfpcms_clearBuf( )
 void dfpcms_init(UART_HandleTypeDef *huartdf, UART_HandleTypeDef *huartserial)
 {
   //huart_dfpcms = huartdf;
-  serialPrint( huartserial, "Init %s module\n", "DPFCMS");
+  serialPrint( huartserial, "Init %s module\r\n", "DPFCMS");
+  dfpcms_initiation();
 }
 void dfpcms_readInfo( uint8_t *buf , uint8_t size )
 {
@@ -37,7 +38,7 @@ void dfpcms_readInfo( uint8_t *buf , uint8_t size )
     {
     case GETNUMSONGS_CMD:
       numberOfSongs = buf[2];
-      serialPrint( &huart2 , "Number of Songs:%2d\n", numberOfSongs);
+      serialPrint( &huart2 , "Number of Songs:%2d\r\n", numberOfSongs);
       break;
     case INIT_CMD:
     case PLAY_CMD:
@@ -46,25 +47,36 @@ void dfpcms_readInfo( uint8_t *buf , uint8_t size )
     case NEXT_CMD:
     case RESUME_CMD:
       uint8_t Verf = buf[2];
-      if ( Verf ) {serialPrint( &huart2 , "CMS %x respond successfully\n", buf[1]);}
-      else {serialPrint( &huart2 , "CMS %x respond error\n", buf[1]);}
+      if ( Verf ) {
+        serialPrint( &huart2 , "CMS %x respond successfully\r\n", buf[1]);
+        if ( buf[1] == INIT_CMD) deviceInitializeze = true;
+      }
+      else {serialPrint( &huart2 , "CMS %x respond error\r\n", buf[1]);}
+      break;
     case SETVOL_CMD:
       deviceVolume = buf[3];
-      serialPrint( &huart2 , "Device Volume:%2d\n", deviceVolume);
+      serialPrint( &huart2 , "Device Volume:%2d\r\n", deviceVolume);
+      break;
     case SETEQ_CMD:
       deviceEQ = buf[2];
-      serialPrint( &huart2 , "Device EQ:%2d\n", deviceEQ);
+      serialPrint( &huart2 , "Device EQ:%2d\r\n", deviceEQ);
+      break;
     case SETSONG_CMD:
       deviceSong = buf[2];
-      serialPrint( &huart2 , "Device Song:%2d\n", deviceSong);
+      serialPrint( &huart2 , "Device Song:%2d\r\n", deviceSong);
       break;
     case GETVOL_CMD:
+      break;
     default:
       break;
     }
   }
+  waitingForUartResponse = false;
 }
-
+bool dfpcms_getInit()
+{
+  return deviceInitializeze;
+}	
 void dfpcms_initiation()
 {
   dfpcms_sendCms( INIT_CMD );
@@ -93,6 +105,13 @@ void dfpcms_setVolume( bool volume )
 {
   uint8_t vol = volume ? VOLUP_CMD : VOLDOWN_CMD;
   dfpcms_sendCms( vol );
+}
+void dfpcms_setVolumeVal( uint8_t volume )
+{
+  DFPCMS_sequence[1] = VOLSET_CMD;
+  for( uint8_t i = 0; i < 3; i++) DFPCMS_sequence[2+i] = 0;
+  DFPCMS_sequence[2] = volume;
+  dfpcms_sendInfo ( DFPCMS_sequence , SEQ_SIZE_CMD );
 }
 int dfpcms_getVolume( )
 {
@@ -136,4 +155,54 @@ void dfpcms_sendCms( uint8_t data )
   DFPCMS_sequence[1] = data;
   for( uint8_t i = 0; i < 3; i++) DFPCMS_sequence[2+i] = 0;
   dfpcms_sendInfo ( DFPCMS_sequence , SEQ_SIZE_CMD );
+}
+
+
+void dfpcms_waitingInitication( )
+{
+  waitingForUartResponse = true;
+  while ( !dfpcms_getInit() )
+  {
+    dfpcms_initiation();
+    uint8_t countUartWait = 0;
+    while (waitingForUartResponse && countUartWait < 50)
+    {
+      /* code */
+      HAL_Delay(50);
+      countUartWait += 1;
+    }
+    
+  }
+}
+
+void dfpcms_waitingSetupSong( uint8_t song  )
+{
+  waitingForUartResponse = true;
+  while ( dfpcms_getCurrentSong() != song )
+  {
+    dfpcms_setSong(song);
+    uint8_t countUartWait = 0;
+    while (waitingForUartResponse && countUartWait < 50)
+    {
+      /* code */
+      HAL_Delay(50);
+      countUartWait += 1;
+    }
+  }
+}
+
+void dfpcms_waitingVolume( uint8_t volume )
+{
+  waitingForUartResponse = true;
+  while ( dfpcms_getVolume()!= volume )
+  {
+    dfpcms_setVolumeVal( volume );
+    uint8_t countUartWait = 0;
+    while (waitingForUartResponse && countUartWait < 50)
+    {
+      /* code */
+      HAL_Delay(50);
+      countUartWait += 1;
+    }
+  }
 }
