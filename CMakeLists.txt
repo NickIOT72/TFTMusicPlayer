@@ -57,6 +57,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Modules/TFTElements/Button/Button.c
     Modules/TFTElements/Triangle/Triangle.c
     Modules/TimeCounter/TimeCounter.c
+    Modules/Screen/Screen.c
+    Modules/ScreenManager/ScreenManager.c
+    Core/Src/Screens/Src/screenIntro.c
+    Core/Src/Screens/Src/screenBlank.c
 )
 
 # Add include paths
@@ -71,6 +75,9 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Modules/TFTElements/Text
     Modules/TFTElements/Rectangle
     Modules/TimeCounter
+    Modules/Screen
+    Modules/ScreenManager
+    Core/Src/Screens/Inc
 )
 
 # Add project symbols (macros)

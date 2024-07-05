@@ -24,7 +24,11 @@
 #include "Serial.h"
 #include "DFPCMS.h"
 #include "ILI9486.h"
-#include "Text.h"
+#include "ScreenManager.h"
+#include "Screen.h"
+
+#include "screenIntro.h"
+#include "screenBlank.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -73,6 +77,8 @@ uint16_t size = 0;
 
 uint16_t ID = 0;
 
+struct screenManager scrmng;
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   serialPrint(&huart2 , "%s\r\n", "Data Received:");
@@ -80,6 +86,55 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   serialPrint(&huart2 , "%s", "\r\n");
   dfpcms_readInfo( Rx3Data , SEQ_SIZE_CMD );
   HAL_UART_Receive_DMA(&huart3, Rx3Data, SEQ_SIZE_CMD);
+}
+
+void evaluateScreen( struct screenManager *sm )
+{
+  if ( sm->actualScreen == 1 )
+  {
+    timeCounter_verifyTimer( &scrmng.s.tc );
+    if ( scrmng.s.tc.timerReached )
+    {
+      timeCounter_endTimer(&scrmng.s.tc);
+      sm->actualScreen = 2 ;
+    }
+  }
+}
+
+void selectScreen( struct screenManager *sm )
+{
+  sm->s.screenNumber = sm->actualScreen;
+  switch (sm->actualScreen)
+  {
+  case 1:
+    screenIntro_init(sm);
+    if ( sm->s.tc.delay > 0)
+    {
+      timeCounter_initTimer( &sm->s.tc );
+    }
+    break;
+  case 2:
+    screenBlank_init(sm);
+    break;
+  default:
+    break;
+  }
+}
+
+
+void initModules()
+{
+  int err = -1;
+  ID = readID();
+  serialPrint( &huart2, "id: %x\n", ID && 0xffff);
+  HAL_Delay(100);
+  tft_init(ID);
+  setRotation(1);
+  scrmng.totalScreens = 2;
+  err = screenManager_init(&scrmng);
+  scrmng.actualScreen = 1;
+  selectScreen( &scrmng );
+  dfpcms_init();
 }
 
 /* USER CODE END 0 */
@@ -118,44 +173,12 @@ int main(void)
   MX_TIM3_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
+  
   HAL_TIM_Base_Start(&htim3);
   HAL_UART_Receive_DMA(&huart3, Rx3Data, SEQ_SIZE_CMD);
-  dfpcms_init();
 
-  HAL_Delay(250);
-  dfpcms_waitingInitication();
-  dfpcms_waitingVolume(20);
-  dfpcms_waitingSetupSong(1);
-  serialPrint(&huart2 , "%s", "Verify TIM3\r\n");
-  __HAL_TIM_SET_COUNTER(&htim3, 0);  // set the counter value a 0
-	uint32_t prev_t1_tick = __HAL_TIM_GET_COUNTER(&htim3);
-	HAL_Delay(1);
-	uint32_t cur_t1_tick = __HAL_TIM_GET_COUNTER(&htim3);
-  serialPrint(&huart2, "main while loop %ld ...\r\n", (cur_t1_tick - prev_t1_tick));
-  HAL_Delay(1);
-	cur_t1_tick = __HAL_TIM_GET_COUNTER(&htim3);
-  serialPrint(&huart2, "main while loop %ld ...\r\n", (cur_t1_tick - prev_t1_tick));
-  HAL_Delay(5);
-	cur_t1_tick = __HAL_TIM_GET_COUNTER(&htim3);
-  serialPrint(&huart2, "main while loop %ld ...\r\n", (cur_t1_tick - prev_t1_tick));
+  initModules();
 
-  ID = readID();
-  serialPrint( &huart2, "id: %x\r\n", ID & 0xffff);
-  HAL_Delay(100);
-  tft_init(ID);
-  setRotation(1);
-
-  struct text introtext;
-
-  fillScreen(WHITE);
-  
-  introtext.color = BLACK;
-  introtext.f = mono12x7bold;
-  introtext.size = 3;
-  strcpy( introtext.text, "MAIN MENU" );
-  introtext.xo = 40;
-  introtext.yo = 60;
-  text_draw(&introtext);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -163,7 +186,12 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+    uint8_t actualScreenM = scrmng.actualScreen;
+    evaluateScreen(&scrmng);
+    if( actualScreenM != scrmng.actualScreen )
+    {
+      selectScreen( &scrmng );
+    }
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
