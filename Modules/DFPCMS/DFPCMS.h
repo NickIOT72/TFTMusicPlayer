@@ -11,7 +11,7 @@
 #define DFPLAYER_EQ_CLASSIC 4
 #define DFPLAYER_EQ_BASS 5
 
-void dfpcms_init(UART_HandleTypeDef *huartdf, UART_HandleTypeDef *huartserial);
+void dfpcms_init();
 void dfpcms_readInfo( uint8_t *buf , uint8_t size );
 void dfpcms_sendInfo( uint8_t *buf , uint8_t size );
 void dfpcms_getNumberOfSongs( );

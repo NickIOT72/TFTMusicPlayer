@@ -24,10 +24,10 @@ void dfpcms_clearBuf( )
 }
 
 
-void dfpcms_init(UART_HandleTypeDef *huartdf, UART_HandleTypeDef *huartserial)
+void dfpcms_init()
 {
   //huart_dfpcms = huartdf;
-  serialPrint( huartserial, "Init %s module\r\n", "DPFCMS");
+  serialPrint( &huart2, "Init %s module\r\n", "DPFCMS");
   dfpcms_initiation();
 }
 void dfpcms_readInfo( uint8_t *buf , uint8_t size )
@@ -160,9 +160,9 @@ void dfpcms_sendCms( uint8_t data )
 
 void dfpcms_waitingInitication( )
 {
-  waitingForUartResponse = true;
   while ( !dfpcms_getInit() )
   {
+    waitingForUartResponse = true;
     dfpcms_initiation();
     uint8_t countUartWait = 0;
     while (waitingForUartResponse && countUartWait < 50)
@@ -173,13 +173,14 @@ void dfpcms_waitingInitication( )
     }
     
   }
+  waitingForUartResponse = false;
 }
 
 void dfpcms_waitingSetupSong( uint8_t song  )
 {
-  waitingForUartResponse = true;
   while ( dfpcms_getCurrentSong() != song )
   {
+    waitingForUartResponse = true;
     dfpcms_setSong(song);
     uint8_t countUartWait = 0;
     while (waitingForUartResponse && countUartWait < 50)
@@ -189,13 +190,14 @@ void dfpcms_waitingSetupSong( uint8_t song  )
       countUartWait += 1;
     }
   }
+  waitingForUartResponse = false;
 }
 
 void dfpcms_waitingVolume( uint8_t volume )
 {
-  waitingForUartResponse = true;
   while ( dfpcms_getVolume()!= volume )
   {
+    waitingForUartResponse = true;
     dfpcms_setVolumeVal( volume );
     uint8_t countUartWait = 0;
     while (waitingForUartResponse && countUartWait < 50)
@@ -205,4 +207,5 @@ void dfpcms_waitingVolume( uint8_t volume )
       countUartWait += 1;
     }
   }
+  waitingForUartResponse = false;
 }

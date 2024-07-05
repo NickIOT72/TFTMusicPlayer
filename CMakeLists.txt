@@ -39,6 +39,7 @@ add_executable(${CMAKE_PROJECT_NAME})
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
+add_subdirectory(Libraries/tft)
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -50,6 +51,12 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     Modules/Serial/Serial.c
     Modules/DFPCMS/DFPCMS.c
+    Modules/TFTElements/Rectangle/Rectangle.c
+    Modules/TFTElements/Text/Text.c
+    Modules/TFTElements/Circle/Circle.c
+    Modules/TFTElements/Button/Button.c
+    Modules/TFTElements/Triangle/Triangle.c
+    Modules/TimeCounter/TimeCounter.c
 )
 
 # Add include paths
@@ -58,6 +65,12 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Modules
     Modules/Serial
     Modules/DFPCMS
+    Modules/TFTElements/Triangle
+    Modules/TFTElements/Button
+    Modules/TFTElements/Circle
+    Modules/TFTElements/Text
+    Modules/TFTElements/Rectangle
+    Modules/TimeCounter
 )
 
 # Add project symbols (macros)
@@ -68,6 +81,6 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-
     # Add user defined libraries
+    tft
 )
