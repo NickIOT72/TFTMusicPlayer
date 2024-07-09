@@ -8,7 +8,7 @@
 #include "tft.h"
 #include "functions.h"
 
-#define DELAY_TIMER_MILLIS 20000
+#define DELAY_TIMER_MILLIS 2000
 
 int screenIntro_show()
 {

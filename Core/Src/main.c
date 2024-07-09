@@ -30,6 +30,7 @@
 #include "screenIntro.h"
 #include "screenBlank.h"
 #include "screenVerification.h"
+#include "screenMainMenu.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -101,12 +102,16 @@ void evaluateScreen( struct screenManager *sm )
     if ( scrmng.s.tc.timerReached )
     {
       timeCounter_endTimer(&scrmng.s.tc);
-      sm->actualScreen = 2 ;
+      sm->actualScreen = 3 ;
     }
   }
   else if( sm->actualScreen == 3 )
   {
     screenVerification_eval(&scrmng);
+  }
+  else if( sm->actualScreen == 4 )
+  {
+    screenMainMenu_eval(&scrmng);
   }
 }
 
@@ -128,6 +133,9 @@ void selectScreen( struct screenManager *sm )
   case 3:
     screenVerification_init(sm);
     break;
+  case 4:
+    screenMainMenu_init(sm);
+    break;
   default:
     break;
   }
@@ -142,9 +150,9 @@ void initModules()
   HAL_Delay(100);
   tft_init(ID);
   setRotation(1);
-  scrmng.totalScreens = 3;
+  scrmng.totalScreens = 4;
   err = screenManager_init(&scrmng);
-  scrmng.actualScreen = 3;
+  scrmng.actualScreen = 1;
   selectScreen( &scrmng );
 }
 

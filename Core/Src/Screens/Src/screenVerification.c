@@ -466,11 +466,7 @@ int screenVerification_eval(struct screenManager *sm)
           else if (dfpcms_getLocalNumberOfSongs() > 0  )
           {
             serialPrint( &huart2 , "NUmber of Songs: %2d\r\n" ,dfpcms_getLocalNumberOfSongs()  );
-            while ( true )
-            {
-              HAL_Delay(1);
-            }
-            
+            sm->actualScreen = 4;
           }
           else{
             if ( counterTimeVerification % 3 == 0)  dfpcms_getNumberOfSongs();
@@ -519,6 +515,7 @@ int screenVerification_eval(struct screenManager *sm)
     }
     timeCounter_resetTimer( &timeVerification );
   }
+  return -1;
 }
 
 int screenVerification_init( struct screenManager *sm  )
