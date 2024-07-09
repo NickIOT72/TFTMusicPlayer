@@ -49,6 +49,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
+    Modules/Joystick/Joystick.c
     Modules/Serial/Serial.c
     Modules/DFPCMS/DFPCMS.c
     Modules/TFTElements/Rectangle/Rectangle.c
@@ -61,12 +62,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Modules/ScreenManager/ScreenManager.c
     Core/Src/Screens/Src/screenIntro.c
     Core/Src/Screens/Src/screenBlank.c
+    Core/Src/Screens/Src/screenVerification.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     Modules
+    Modules/Joystick
     Modules/Serial
     Modules/DFPCMS
     Modules/TFTElements/Triangle

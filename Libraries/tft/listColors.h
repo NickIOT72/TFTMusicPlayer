@@ -11,5 +11,6 @@
 #define WHITE   0xFFFF
 
 #define TURKEY_LIGTH  0x04d3 
+#define GREY_LIGTH 0xce59
 
 #endif /* _LISTCOLORS_H */

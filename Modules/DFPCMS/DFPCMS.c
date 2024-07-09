@@ -8,7 +8,7 @@ extern UART_HandleTypeDef huart3;
 
 uint8_t DFPCMS_sequence[6] = {START_BYTE,0,0,0,0,END_BYTE};
 
-uint8_t numberOfSongs = 0;
+int numberOfSongs = -1;
 uint8_t deviceVolume = 0;
 #define VOLUP_LIMIT 30
 #define VOLDOWN_LIMIT 0 
@@ -29,6 +29,15 @@ void dfpcms_init()
   //huart_dfpcms = huartdf;
   serialPrint( &huart2, "Init %s module\r\n", "DPFCMS");
   dfpcms_initiation();
+}
+void dfpcms_resetInit()
+{
+  deviceInitializeze = false;
+}
+
+void dfpcms_resetNumberOfSongs()
+{
+  numberOfSongs = -1;
 }
 void dfpcms_readInfo( uint8_t *buf , uint8_t size )
 {
@@ -133,6 +142,10 @@ void dfpcms_getNumberOfSongs( )
   DFPCMS_sequence[1] = GETNUMSONGS_CMD;
   for( uint8_t i = 0; i < 3; i++) DFPCMS_sequence[2+i] = 0;
   dfpcms_sendInfo ( DFPCMS_sequence , SEQ_SIZE_CMD );
+}
+int dfpcms_getLocalNumberOfSongs( )
+{
+  return numberOfSongs;
 }
 void dfpcms_setEQ( uint8_t eq )
 {

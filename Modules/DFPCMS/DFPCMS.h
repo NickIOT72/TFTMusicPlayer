@@ -30,7 +30,9 @@ void dfpcms_setSong( uint8_t song );
 int dfpcms_getCurrentSong( );
 void dfpcms_setEQ( uint8_t eq );
 int dfpcms_getEQ();
-
+int dfpcms_getLocalNumberOfSongs( );
+void dfpcms_resetInit();
+void dfpcms_resetNumberOfSongs();
 
 void dfpcms_waitingInitication( );
 void dfpcms_waitingSetupSong( uint8_t song );

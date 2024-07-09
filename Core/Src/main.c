@@ -29,6 +29,7 @@
 
 #include "screenIntro.h"
 #include "screenBlank.h"
+#include "screenVerification.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +48,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
 TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart2;
@@ -65,6 +68,7 @@ static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -81,6 +85,7 @@ struct screenManager scrmng;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+  //if ( Rx3Data[0] == 0 && Rx3Data[1] == 0 ) return;
   serialPrint(&huart2 , "%s\r\n", "Data Received:");
   serialPrintHex( &huart2 , Rx3Data , SEQ_SIZE_CMD);
   serialPrint(&huart2 , "%s", "\r\n");
@@ -99,6 +104,10 @@ void evaluateScreen( struct screenManager *sm )
       sm->actualScreen = 2 ;
     }
   }
+  else if( sm->actualScreen == 3 )
+  {
+    screenVerification_eval(&scrmng);
+  }
 }
 
 void selectScreen( struct screenManager *sm )
@@ -116,6 +125,9 @@ void selectScreen( struct screenManager *sm )
   case 2:
     screenBlank_init(sm);
     break;
+  case 3:
+    screenVerification_init(sm);
+    break;
   default:
     break;
   }
@@ -130,11 +142,10 @@ void initModules()
   HAL_Delay(100);
   tft_init(ID);
   setRotation(1);
-  scrmng.totalScreens = 2;
+  scrmng.totalScreens = 3;
   err = screenManager_init(&scrmng);
-  scrmng.actualScreen = 1;
+  scrmng.actualScreen = 3;
   selectScreen( &scrmng );
-  dfpcms_init();
 }
 
 /* USER CODE END 0 */
@@ -172,6 +183,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM3_Init();
   MX_USART3_UART_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   
   HAL_TIM_Base_Start(&htim3);
@@ -248,6 +260,66 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 2;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_12;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Rank = 2;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -438,6 +510,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : JS_SW_Pin */
+  GPIO_InitStruct.Pin = JS_SW_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(JS_SW_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
