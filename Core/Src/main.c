@@ -31,6 +31,7 @@
 #include "screenBlank.h"
 #include "screenVerification.h"
 #include "screenMainMenu.h"
+#include "screenPlayer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -113,6 +114,10 @@ void evaluateScreen( struct screenManager *sm )
   {
     screenMainMenu_eval(&scrmng);
   }
+  else if( sm->actualScreen == 5 )
+  {
+    screenPlayer_eval(&scrmng);
+  }
 }
 
 void selectScreen( struct screenManager *sm )
@@ -136,6 +141,9 @@ void selectScreen( struct screenManager *sm )
   case 4:
     screenMainMenu_init(sm);
     break;
+  case 5:
+    screenPlayer_init(sm);
+    break;
   default:
     break;
   }
@@ -150,9 +158,9 @@ void initModules()
   HAL_Delay(100);
   tft_init(ID);
   setRotation(1);
-  scrmng.totalScreens = 4;
+  scrmng.totalScreens = 5;
   err = screenManager_init(&scrmng);
-  scrmng.actualScreen = 1;
+  scrmng.actualScreen = 5;
   selectScreen( &scrmng );
 }
 
@@ -319,6 +327,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
+  sConfig.Channel = ADC_CHANNEL_13;
   sConfig.Rank = 2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
