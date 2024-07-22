@@ -11,6 +11,8 @@
 #include "main.h"
 #include "Triangle.h"
 
+#include "screenPlayer.h"
+
 int numberOfSongsTrack = 7;
 int trackPage = 0;
 #define TRACKS_PER_PAGE 4
@@ -32,8 +34,28 @@ struct button trackListOnDisplay[4];
 struct triangle selectorTrackList;
 extern struct joystick js2;
 
+struct text tracksPage;
+
 extern UART_HandleTypeDef huart2;
 extern ADC_HandleTypeDef hadc1;
+
+bool changeScreen = false;
+struct timeCounter timeVerificationMain;
+
+int calculateEndTrackPage()
+{
+  return trackPage*TRACKS_PER_PAGE + 3 < numberOfSongsTrack-1?trackPage*TRACKS_PER_PAGE + 3 : numberOfSongsTrack-1;
+}	
+
+void setTrackPage()
+{
+  tracksPage.color = TURKEY_LIGTH;
+  tracksPage.f = mono9x7bold;
+  tracksPage.size = 2;
+  sprintf( tracksPage.text, " %d-%d of %d",trackPage*TRACKS_PER_PAGE + 1  , calculateEndTrackPage() + 1, dfpcms_getLocalNumberOfSongs());
+  tracksPage.xo = 200;
+  tracksPage.yo = 30;
+}
 
 int checkPostionJoystick( struct joystick *js )
 {
@@ -64,6 +86,9 @@ void checkOptions(struct joystick *js)
       trackListDisplayPosition = 0;
       setUpListOfSongs();
       for( int i = 0; i < TRACK_LIST_LEN; i++ ) trackListOnDisplay[i].r.backgroundColor == WHITE?rectangle_draw(&trackListOnDisplay[i].r):button_draw( &trackListOnDisplay[i] );
+      setTrackPage();
+      fillRoundRect(175 , 5 , 300, 30, 0 , WHITE);
+      text_draw(&tracksPage);
       triangle_draw( &selectorTrackList );
     }
     else{
@@ -88,6 +113,9 @@ void checkOptions(struct joystick *js)
       trackPage -= 1;
       setUpListOfSongs();
       for( int i = 0; i < TRACK_LIST_LEN; i++ ) trackListOnDisplay[i].r.backgroundColor == WHITE?rectangle_draw(&trackListOnDisplay[i].r):button_draw( &trackListOnDisplay[i] );
+      setTrackPage();
+      fillRoundRect(175 , 5 , 300, 30, 0 , WHITE);
+      text_draw(&tracksPage);
       triangle_draw( &selectorTrackList );
     }
     else
@@ -110,6 +138,17 @@ void checkOptions(struct joystick *js)
     }
     selectorTrackList.backgroundColor = WHITE;
     triangle_draw(&selectorTrackList);
+    int fgsong = dfpcms_getCurrentSong();
+    if ( fgsong != trackPage*TRACKS_PER_PAGE + trackListDisplayPosition )
+    {
+      dfpcms_waitingPlayPause(STATUS_PAUSE);
+      setStatusSongFromMainMenu(false);
+      dfpcms_waitingSetupSong(trackPage*TRACKS_PER_PAGE + trackListDisplayPosition);
+
+      //dfpcms_setSong(trackPage*TRACKS_PER_PAGE + trackListDisplayPosition);
+      //dfpcms_setPrevSong(trackPage*TRACKS_PER_PAGE + trackListDisplayPosition );
+    }
+    changeScreen = true;
   }
 }
 
@@ -139,10 +178,7 @@ void setUpListOfSongs()
     trackListOnDisplay[i].releasedColor = WHITE;
     trackListOnDisplay[i].releasedTextColor = TURKEY_LIGTH;
     trackListOnDisplay[i].tm.tStart = 50;
-    if( trackListDisplayPosition == 3)
-    {
-      uint8_t f  = 0;
-    }
+
     if (  trackListDisplayPosition == i)
     {
       selectorTrackList.x0 = 340 ;
@@ -169,7 +205,7 @@ int screenMainMenu_show()
   introtext.f = mono12x7bold;
   introtext.size = 2;
   strcpy( introtext.text, "Tracks" );
-  introtext.xo = 140;
+  introtext.xo = 20;
   introtext.yo = 30;
 
   borderTrack.backgroundColor = WHITE;
@@ -180,8 +216,20 @@ int screenMainMenu_show()
   borderTrack.width = 420;
   borderTrack.xo = 20;
   borderTrack.yo = 50;
-  
+
   numberOfSongsTrack = dfpcms_getLocalNumberOfSongs();
+  
+  
+  int currentSong = dfpcms_getCurrentSong();
+  if ( currentSong == -1 )
+  {
+    trackPage = 0;
+    trackListDisplayPosition = 0;
+  }
+  else{
+    trackPage = currentSong/TRACKS_PER_PAGE;
+    trackListDisplayPosition = currentSong%TRACKS_PER_PAGE;
+  }
 
   setUpListOfSongs();
 
@@ -191,7 +239,9 @@ int screenMainMenu_show()
   rectangle_draw(&borderTrack);
   for( int i = 0; i < TRACK_LIST_LEN; i++ ) button_draw( &trackListOnDisplay[i] );
   triangle_draw( &selectorTrackList );
-
+  setTrackPage();
+  fillRoundRect(175 , 5 , 300, 30, 0 , WHITE);
+  text_draw(&tracksPage);
   return err;
 }
 
@@ -200,6 +250,10 @@ int screenMainMenu_init( struct screenManager *sm  )
   int err = -1;
   sm->s.tc.delay = 0;
   err = screenMainMenu_show();
+
+  timeVerificationMain.delay = 1500;
+  timeCounter_init( &timeVerificationMain );
+  timeCounter_initTimer( &timeVerificationMain );
   js2.sw_port = JS_SW_GPIO_Port;
   js2.swPin = JS_SW_Pin;
   js2.hadc_js = &hadc1;
@@ -213,7 +267,35 @@ int screenMainMenu_init( struct screenManager *sm  )
 }
 int screenMainMenu_eval(struct screenManager *sm)
 {
+  static int counterStatusMain = 0;
   joystick_getValuesByTimer(&js2 , checkOptions );
   HAL_Delay(1);
+  counterStatusMain += 1;
+  if ( counterStatusMain >= 200 )
+  {
+    DFPCMS_getStatus();
+    counterStatusMain = 0;
+  }
+  if ( timeCounter_verifyTimer(&timeVerificationMain) )
+  {
+    if ( dfpcms_getStatusLocal() && returnSongStatus() )
+    {
+      uint8_t newSong = dfpcms_getCurrentSong() == dfpcms_getLocalNumberOfSongs( ) -1 ? 0 : dfpcms_getCurrentSong() +1;
+      dfpcms_waitingSetupSong( newSong );
+      setSongFromMainMenu(newSong);
+      setStatusSongFromMainMenu(true);
+      dfpcms_waitingPlayPause(STATUS_PLAY);
+      DFPCMS_getStatus();
+      timeCounter_resetTimer( &timeVerificationMain );
+      counterStatusMain = 0;
+    }
+  }/**/
+
+  if( changeScreen )
+  {
+    setBarInit();
+    changeScreen = false;
+    sm->actualScreen = 5;
+  }	
   return -1;
 }	

@@ -427,7 +427,7 @@ int screenVerification_eval(struct screenManager *sm)
         else if( deviceAsked && !deviceDetected  ) {
           if ( dfpcms_getInit() )
           {
-            serialPrint( &huart2 , "%s" ,"Device initiated"  );
+            serialPrint( &huart2 , "%s" ,"Device initiated\r\n"  );
             deviceDetected = true;
             screenVerificationListOfSongs_show();
             counterTimeVerification = 1;
@@ -466,6 +466,13 @@ int screenVerification_eval(struct screenManager *sm)
           else if (dfpcms_getLocalNumberOfSongs() > 0  )
           {
             serialPrint( &huart2 , "NUmber of Songs: %2d\r\n" ,dfpcms_getLocalNumberOfSongs()  );
+            fillRect( 90 , 170 , 320 , 40 , WHITE );
+            pointtext.xo = pointtext.xo  - 60;
+            pointtext.yo = pointtext.yo + 30;
+            pointtext.size = dfpcms_getLocalNumberOfSongs() > 9?1:2;
+            sprintf( pointtext.text, "%d songs on list", dfpcms_getLocalNumberOfSongs());
+            text_draw(&pointtext);
+            HAL_Delay(3000);
             sm->actualScreen = 4;
           }
           else{
@@ -483,9 +490,9 @@ int screenVerification_eval(struct screenManager *sm)
       }
     }
     counterTimeVerification += 1;
-    if ( counterTimeVerification >= 30 )
+    if ( counterTimeVerification >= 100 )
     {
-      serialPrint( &huart2 , "%s" ,"Iniation error"  );
+      serialPrint( &huart2 , "%s" ,"Iniation error\r\n"  );
       if (!deviceDetected) screenVerificationFailed_show();
       else screenVerificationListOfSongsFailed_show();
       while (1)

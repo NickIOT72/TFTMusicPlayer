@@ -88,9 +88,9 @@ struct screenManager scrmng;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   //if ( Rx3Data[0] == 0 && Rx3Data[1] == 0 ) return;
-  serialPrint(&huart2 , "%s\r\n", "Data Received:");
-  serialPrintHex( &huart2 , Rx3Data , SEQ_SIZE_CMD);
-  serialPrint(&huart2 , "%s", "\r\n");
+  //serialPrint(&huart2 , "%s\r\n", "Data Received:");
+  //serialPrintHex( &huart2 , Rx3Data , SEQ_SIZE_CMD);
+  //serialPrint(&huart2 , "%s", "\r\n");
   dfpcms_readInfo( Rx3Data , SEQ_SIZE_CMD );
   HAL_UART_Receive_DMA(&huart3, Rx3Data, SEQ_SIZE_CMD);
 }
@@ -153,6 +153,17 @@ void selectScreen( struct screenManager *sm )
 void initModules()
 {
   int err = -1;
+  DFPCMS_getStatus();
+  HAL_Delay(50);
+  dfpcms_pause();
+  HAL_Delay(50);
+  dfpcms_pause();
+  HAL_Delay(50);
+  dfpcms_pause();
+  HAL_Delay(50);
+  dfpcms_pause();
+  HAL_Delay(50);
+  dfpcms_waitingPlayPause(STATUS_PAUSE);
   ID = readID();
   serialPrint( &huart2, "id: %x\n", ID && 0xffff);
   HAL_Delay(100);
@@ -160,7 +171,7 @@ void initModules()
   setRotation(1);
   scrmng.totalScreens = 5;
   err = screenManager_init(&scrmng);
-  scrmng.actualScreen = 5;
+  scrmng.actualScreen = 1;
   selectScreen( &scrmng );
 }
 

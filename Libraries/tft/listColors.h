@@ -14,5 +14,6 @@
 #define GREY_LIGTH 0xce59
 #define GREY_DARK 0x31a6
 #define TURKEY_DARK  0x0165
+#define RED_DARK 0x8800 
 
 #endif /* _LISTCOLORS_H */

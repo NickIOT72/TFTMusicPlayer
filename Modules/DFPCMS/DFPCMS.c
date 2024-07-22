@@ -13,10 +13,11 @@ uint8_t deviceVolume = 0;
 #define VOLUP_LIMIT 30
 #define VOLDOWN_LIMIT 0 
 uint8_t deviceEQ = 0;
-uint8_t deviceSong = 0;
+int deviceSong = -1;
 bool deviceInitializeze = false;
-
 bool waitingForUartResponse = false;
+uint8_t prevSong = 0;
+bool statusDevice = true;
 
 void dfpcms_clearBuf( )
 {
@@ -73,6 +74,10 @@ void dfpcms_readInfo( uint8_t *buf , uint8_t size )
     case SETSONG_CMD:
       deviceSong = buf[2];
       serialPrint( &huart2 , "Device Song:%2d\r\n", deviceSong);
+      break;
+    case STATUS_CMD:
+      statusDevice = (bool)buf[2];
+      serialPrint( &huart2 , "Device Status:%s\r\n", statusDevice?"OFF":"ON");
       break;
     case GETVOL_CMD:
       break;
@@ -170,6 +175,25 @@ void dfpcms_sendCms( uint8_t data )
   dfpcms_sendInfo ( DFPCMS_sequence , SEQ_SIZE_CMD );
 }
 
+void dfpcms_setPrevSong(uint8_t song)
+{
+  prevSong = song;
+}
+
+int dfpcms_getPrevSong()
+{
+  return prevSong;
+}
+
+void DFPCMS_getStatus()
+{
+  dfpcms_sendCms( STATUS_CMD  );
+}
+bool dfpcms_getStatusLocal()
+{
+  return statusDevice;
+}
+
 
 void dfpcms_waitingInitication( )
 {
@@ -219,6 +243,44 @@ void dfpcms_waitingVolume( uint8_t volume )
       HAL_Delay(50);
       countUartWait += 1;
     }
+  }
+  waitingForUartResponse = false;
+}
+
+void dfpcms_waitingPlayPause( bool stat )
+{
+  while ( dfpcms_getStatusLocal() != stat )
+  {
+    waitingForUartResponse = true;
+    stat? dfpcms_pause() : dfpcms_play();
+    uint8_t countUartWait = 0;
+    while (waitingForUartResponse && countUartWait < 50)
+    {
+      /* code */
+      HAL_Delay(50);
+      countUartWait += 1;
+    }
+    DFPCMS_getStatus();
+    HAL_Delay(50);
+  }
+  waitingForUartResponse = false;
+}
+
+void dfpcms_waitingResume()
+{
+  while ( dfpcms_getStatusLocal() != false)
+  {
+    waitingForUartResponse = true;
+    dfpcms_resume();
+    uint8_t countUartWait = 0;
+    while (waitingForUartResponse && countUartWait < 50)
+    {
+      /* code */
+      HAL_Delay(50);
+      countUartWait += 1;
+    }
+    DFPCMS_getStatus();
+    HAL_Delay(50);
   }
   waitingForUartResponse = false;
 }

@@ -54,7 +54,7 @@ struct button ReturnBtn;
 #define VOLT_EXT_HIP 111.8
 #define VOLT_EXT_CIRC_R 16.54
 
-float volumeEquivalent = 5;
+float volumeEquivalent = 10;
 
 #define VOLT_INT_INTERNAL_DISTANCE 5 
 #define VOLT_INT_R 11.54
@@ -67,11 +67,16 @@ float volumeEquivalent = 5;
 
 #define VOLT_INT_X_DIST 55 
 
-uint8_t currentSong = 0;
+int currentSong = -1;
 bool statusSong = false;
 
-uint8_t barSelection = 1;
+uint8_t barSelection = 2;
 bool selectedBar = false;
+uint8_t setVol = 20;
+
+bool allowChangePlayer = false;
+
+struct timeCounter timeVerificationPlayer;
 
 float map(float x, float in_min, float in_max, float out_min, float out_max) {
   return (x - in_min) *(float)((out_max - out_min) / (in_max - in_min)) + out_min;
@@ -88,7 +93,7 @@ void drawNextButton()
 void drawPlayButton()
 {
   circle_draw(&playBtn2);
-  if ( statusSong ){
+  if ( !statusSong ){
     triangle_draw(&playBtnt);
   }
   else 
@@ -112,7 +117,15 @@ void drawVol()
   fillRoundRect(60 , 240 , 60, 25, 0 , WHITE);
   text_draw(&textVol);
 }
-
+void setTrackText()
+{
+  textTrack.color = TURKEY_LIGTH;
+  textTrack.f = mono12x7bold;
+  textTrack.size = 1;
+  sprintf( textTrack.text, "Trk%d ", currentSong);
+  textTrack.xo = 100;
+  textTrack.yo = 280;
+}
 
 void setVolumneGraph()
 {
@@ -204,14 +217,51 @@ void selectOptionBar(uint8_t bft)
   }
 }
 
-void deselectOptionBar(uint8_t bft)
+void selectionOptionBar(uint8_t bft)
+{
+  if (bft == 3)
+  {
+    prevBtn2.backgroundColor = GREY_DARK;
+    prevBtnt1.backgroundColor = WHITE;
+    prevBtnt2.backgroundColor = WHITE;
+    drawPrevButton();
+  }
+  else if (bft == 2)
+  {
+    playBtn2.backgroundColor = GREY_DARK;
+    playBtnP1.backgroundColor = WHITE;
+    playBtnP2.backgroundColor = WHITE;
+    playBtnt.backgroundColor = WHITE;
+    drawPlayButton();
+  }
+  else if (bft == 1)
+  {
+    nextBtnt1.backgroundColor = WHITE;
+    nextBtnt2.backgroundColor = WHITE;
+    nextBtn2.backgroundColor = GREY_DARK;
+    drawNextButton();
+  }
+  else if (bft == 4)
+  {
+    volSet.backgroundColor = GREY_LIGTH;
+    drawVol();
+  }
+  else if (bft == 0)
+  {
+    ReturnBtn.r.backgroundColor = RED_DARK;
+    ReturnBtn.t.color = WHITE;
+    button_draw(&ReturnBtn);
+  }
+}
+
+void deselectOptionBar(uint8_t bft, bool allowDraw)
 {
   if (bft == 3)
   {
     prevBtn2.backgroundColor = WHITE;
     prevBtnt1.backgroundColor = TURKEY_LIGTH;
     prevBtnt2.backgroundColor = TURKEY_LIGTH;
-    drawPrevButton();
+    if(allowDraw)drawPrevButton();
   }
   else if (bft == 2)
   {
@@ -219,25 +269,25 @@ void deselectOptionBar(uint8_t bft)
     playBtnP1.backgroundColor = TURKEY_LIGTH;
     playBtnP2.backgroundColor = TURKEY_LIGTH;
     playBtnt.backgroundColor = TURKEY_LIGTH;
-    drawPlayButton();
+    if(allowDraw)drawPlayButton();
   }
   else if (bft == 1)
   {
     nextBtn2.backgroundColor = WHITE;
     nextBtnt1.backgroundColor = TURKEY_LIGTH;
     nextBtnt2.backgroundColor = TURKEY_LIGTH;
-    drawNextButton();
+    if(allowDraw)drawNextButton();
   }
   else if (bft == 4)
   {
     volSet.backgroundColor = GREY_DARK;
-    drawVol();
+    if(allowDraw)drawVol();
   }
   else if (bft == 0)
   {
     ReturnBtn.r.backgroundColor = ReturnBtn.releasedColor;
     ReturnBtn.t.color = ReturnBtn.releasedTextColor;
-    button_draw(&ReturnBtn);
+    if(allowDraw)button_draw(&ReturnBtn);
   }
 }
 
@@ -257,9 +307,10 @@ int checkPostionJoystickPlayer( struct joystick *js )
   }
   return -1;
 }
-
+static counterStatus = 0;
 void checkOptionsPlayer(struct joystick *js)
 {
+  static bool puasedPressed = false;
   int err = checkPostionJoystickPlayer(js);
   if (err == 1) return;
   if( js->adc_X < 500 || js->adc_X > 3500 )
@@ -268,27 +319,101 @@ void checkOptionsPlayer(struct joystick *js)
     barSelection = barSelection < 4 &&  js->adc_X < 500 ? barSelection +1: barSelection > 0 &&  js->adc_X > 3500? barSelection - 1:barSelection;
     if( prevBarSele != barSelection )
     {
-      deselectOptionBar(prevBarSele);
+      deselectOptionBar(prevBarSele, true);
       selectOptionBar(barSelection);
     }
     if (  js->tm.delay == 50 ) js->tm.delay = 250;
   }
   else if ( !js->sw && barSelection < 4  )
   {
-    if ( barSelection == 1 ) serialPrint(&huart2 , "%s", "Go to next song");
-    else if ( barSelection == 2 ) serialPrint(&huart2 , "%s", "Go to Play");
-    else if ( barSelection == 3 ) serialPrint(&huart2 , "%s", "Go to prev song");
-    else if ( barSelection == 0 ) serialPrint(&huart2 , "%s", "Return to menu");
+    selectionOptionBar(barSelection);
     while ( !js2.sw)
     {
       joystick_getValuesByTimer(&js2 , doNot );
       HAL_Delay(1);
     }
+    selectOptionBar(barSelection);
+    if ( barSelection == 1 )
+    {
+      serialPrint(&huart2 , "%s", "Go to next song\r\n");
+      dfpcms_waitingPlayPause(STATUS_PAUSE);
+      //statusSong = false;
+      currentSong = currentSong < dfpcms_getLocalNumberOfSongs( )-1?currentSong + 1 :0;
+      dfpcms_waitingSetupSong(currentSong);
+      currentSong = dfpcms_getCurrentSong();
+      //statusSong = true;
+      //drawPlayButton();
+      setTrackText();
+      fillRoundRect(90 , 264 , 65, 25, 0 , WHITE);
+      text_draw(&textTrack);
+      statusSong = true;
+      drawPlayButton();
+      dfpcms_waitingPlayPause(STATUS_PLAY);
+      timeCounter_resetTimer( &timeVerificationPlayer );
+      counterStatus = 0;
+    }
+    else if ( barSelection == 2 )
+    {
+      serialPrint(&huart2 , "%s", "Go to Play\r\n");
+      statusSong = !statusSong;
+      !statusSong?dfpcms_waitingPlayPause(STATUS_PAUSE):dfpcms_waitingResume();
+      if ( statusSong )
+      {
+        timeCounter_resetTimer( &timeVerificationPlayer );
+        counterStatus = 0;
+      }
+      drawPlayButton();
+    }
+    else if ( barSelection == 3 )
+    {
+      serialPrint(&huart2 , "%s", "Go to prev song\r\n");
+      dfpcms_waitingPlayPause(STATUS_PAUSE);
+      //statusSong = false;
+      currentSong = currentSong > 0?currentSong - 1 :dfpcms_getLocalNumberOfSongs( )-1;
+      dfpcms_waitingSetupSong(currentSong);
+      currentSong = dfpcms_getCurrentSong();
+      //statusSong = true;
+      //drawPlayButton();
+      setTrackText();
+      fillRoundRect(90 , 264 , 65, 25, 0 , WHITE);
+      text_draw(&textTrack);
+      statusSong = true;
+      drawPlayButton();
+      dfpcms_waitingPlayPause(STATUS_PLAY);
+      timeCounter_resetTimer( &timeVerificationPlayer );
+      counterStatus = 0;
+    }
+    else if ( barSelection == 0 )
+    {
+      allowChangePlayer = true;
+    }
   }
   else if ( (js->adc_y < 500 || js->adc_y > 3500 ) && barSelection == 4 )
   {
-    if ( js->adc_y < 500  ) serialPrint(&huart2 , "%s", "Decrease Vol");
-    else if ( js->adc_y > 3500 ) serialPrint(&huart2 , "%s", "Encrease Vol");
+    if ( js->adc_y < 500  )
+    {
+      serialPrint(&huart2 , "%s", "Decrease Vol\r\n");
+      if ( setVol > 0 ) {
+        setVol -= 1;
+        volumeEquivalent = map( setVol, 0, 30, 0, VOLT_EXT_CIRC_R - VOLT_INT_INTERNAL_DISTANCE );
+        dfpcms_waitingVolume(setVol);
+        setVol = dfpcms_getVolume();
+        setVolumneGraph();
+        drawVol();
+      }
+    }
+    else if ( js->adc_y > 3500 )
+    {
+      serialPrint(&huart2 , "%s", "Increase Vol\r\n");
+      if ( setVol < 30 ){
+        setVol += 1;
+        volumeEquivalent = map( setVol, 0, 30, 0, VOLT_EXT_CIRC_R - VOLT_INT_INTERNAL_DISTANCE );
+        dfpcms_waitingVolume(setVol);
+        setVol = dfpcms_getVolume();
+        setVolumneGraph();
+        drawVol();
+      }
+    }
   }
 }
 
@@ -393,16 +518,6 @@ void setNextButton()
   nextBtnt2.y2 = nextBtn.yo + 10;
 }
 
-void setTrackText()
-{
-  textTrack.color = TURKEY_LIGTH;
-  textTrack.f = mono12x7bold;
-  textTrack.size = 1;
-  sprintf( textTrack.text, "Trk%d ", currentSong);
-  textTrack.xo = 100;
-  textTrack.yo = 280;
-}
-
 void drawMusicSymbol()
 {
   struct circle circ1;
@@ -505,8 +620,6 @@ void drawMusicSymbol()
 
   setNextButton();
 
-  setTrackText();
-
   setVolumneGraph();
 
   ReturnBtn.r.backgroundColor = WHITE;
@@ -544,15 +657,63 @@ void drawMusicSymbol()
   drawPrevButton();
   drawPlayButton();
   drawNextButton();
-  
-  text_draw(&textTrack);
 
   triangle_draw(&volExt);
   drawVol();
   button_draw(&ReturnBtn);
-
-  selectOptionBar(barSelection);
   
+}
+
+bool returnSongStatus()
+{
+  return statusSong;
+}
+
+void setSongFromMainMenu(uint8_t s)
+{
+  currentSong = s;
+}
+
+void setStatusSongFromMainMenu(bool t)
+{
+  statusSong = t;
+}
+
+void setBarInit()
+{
+  deselectOptionBar(barSelection, false);
+  barSelection = 2;
+}
+
+void initMusic()
+{
+  int prevStatus = currentSong;
+  currentSong = dfpcms_getCurrentSong();
+  //dfpcms_waitingSetupSong(currentSong);
+  //dfpcms_pause();
+  //dfpcms_pause();
+  //dfpcms_pause();
+  volumeEquivalent = map( setVol, 0, 30, 0, VOLT_EXT_CIRC_R - VOLT_INT_INTERNAL_DISTANCE );
+  dfpcms_waitingVolume(setVol);
+  setVol = dfpcms_getVolume();
+  /*if ( prevStatus != currentSong )
+  { 
+    deselectOptionBar(barSelection);
+    barSelection = 2;
+  }
+  if ( barSelection == 0 ) barSelection = 2;
+  { 
+    deselectOptionBar(barSelection);
+    barSelection = 2;
+  }*/
+  if ( prevStatus != currentSong )statusSong = true;
+  setTrackText();
+  fillRoundRect(90 , 264 , 65, 25, 0 , WHITE);
+  text_draw(&textTrack);
+  setVolumneGraph();
+  drawVol();
+  selectOptionBar(barSelection);
+  if ( prevStatus != currentSong ) dfpcms_waitingPlayPause(STATUS_PLAY);;
 }
 
 int screenPlayer_show()
@@ -570,6 +731,8 @@ int screenPlayer_show()
   text_draw(&introtext);
   drawMusicSymbol();
 
+  initMusic();
+
   return -1;
 }
 
@@ -578,6 +741,10 @@ int screenPlayer_init( struct screenManager *sm  )
   int err = -1;
   sm->s.tc.delay = 0;
   err = screenPlayer_show();
+
+  timeVerificationPlayer.delay = 1500;
+  timeCounter_init( &timeVerificationPlayer );
+  timeCounter_initTimer( &timeVerificationPlayer );
 
   js2.sw_port = JS_SW_GPIO_Port;
   js2.swPin = JS_SW_Pin;
@@ -607,9 +774,30 @@ int screenPlayer_eval(struct screenManager *sm)
     drawPlayButton();
   }
   HAL_Delay(1000);*/
-
   joystick_getValuesByTimer(&js2 , checkOptionsPlayer );
   HAL_Delay(1);
-
+  counterStatus += 1;
+  if ( counterStatus >= 200 )
+  {
+    DFPCMS_getStatus();
+    counterStatus = 0;
+  }
+  timeCounter_verifyTimer(&timeVerificationPlayer);
+  if ( timeVerificationPlayer.timerReached )
+  {
+    if ( dfpcms_getStatusLocal() && statusSong )
+    {
+      uint8_t newSong = currentSong == dfpcms_getLocalNumberOfSongs( ) -1 ? 0 : currentSong +1;
+      dfpcms_waitingSetupSong( newSong );
+      initMusic( );
+      timeCounter_resetTimer( &timeVerificationPlayer );
+      counterStatus = 0;
+    }
+  }
+  if(allowChangePlayer)
+  {
+    sm->actualScreen = 4;
+    allowChangePlayer = false;
+  }
   return -1;
 }
