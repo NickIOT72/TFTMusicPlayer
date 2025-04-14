@@ -14,6 +14,9 @@
 #define STATUS_PLAY false
 #define STATUS_PAUSE true
 
+//#define SERIAL_ESP32
+#define SERIAL_DFPLAYERMINI
+
 void dfpcms_init();
 void dfpcms_readInfo( uint8_t *buf , uint8_t size );
 void dfpcms_sendInfo( uint8_t *buf , uint8_t size );
@@ -45,5 +48,6 @@ void dfpcms_waitingVolume( uint8_t volume );
 bool dfpcms_getStatusLocal();
 void dfpcms_waitingPlayPause( bool stat );
 void dfpcms_waitingResume();
+void dfpcms_stop();
 
 #endif

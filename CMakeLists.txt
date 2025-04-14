@@ -52,6 +52,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Modules/Joystick/Joystick.c
     Modules/Serial/Serial.c
     Modules/DFPCMS/DFPCMS.c
+    Modules/dfminiplayer/dfminiplayer.c
     Modules/TFTElements/Rectangle/Rectangle.c
     Modules/TFTElements/Text/Text.c
     Modules/TFTElements/Circle/Circle.c
@@ -74,6 +75,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     Modules/Joystick
     Modules/Serial
     Modules/DFPCMS
+    Modules/dfminiplayer
     Modules/TFTElements/Triangle
     Modules/TFTElements/Button
     Modules/TFTElements/Circle

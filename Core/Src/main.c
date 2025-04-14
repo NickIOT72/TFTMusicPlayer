@@ -77,7 +77,14 @@ static void MX_ADC1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t Rx3Data[SEQ_SIZE_CMD +1];
+#if defined(SERIAL_ESP32)
+    #define UART_BUFFER SEQ_SIZE_CMD
+    uint8_t Rx3Data[UART_BUFFER +1];
+#elif defined(SERIAL_DFPLAYERMINI)
+    #define UART_BUFFER DFMINIPLAYER_BUFFER_SIZE
+    uint8_t Rx3Data[UART_BUFFER];
+#endif
+
 int isSizeRxed = 0;
 uint16_t size = 0;
 
@@ -85,14 +92,15 @@ uint16_t ID = 0;
 
 struct screenManager scrmng;
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+void HAL_UART_RxCpltCallback( UART_HandleTypeDef *huart )
 {
-  //if ( Rx3Data[0] == 0 && Rx3Data[1] == 0 ) return;
-  //serialPrint(&huart2 , "%s\r\n", "Data Received:");
-  //serialPrintHex( &huart2 , Rx3Data , SEQ_SIZE_CMD);
-  //serialPrint(&huart2 , "%s", "\r\n");
-  dfpcms_readInfo( Rx3Data , SEQ_SIZE_CMD );
-  HAL_UART_Receive_DMA(&huart3, Rx3Data, SEQ_SIZE_CMD);
+	Serial_pushData(Rx3Data, UART_BUFFER);
+	//Serial_print(&huart2," %s","R: " );
+	//for( int i = 0; i < UART_BUFFER; i++ ){
+	//	Serial_print(&huart2,"%1X ",Rx3Data[i] );
+	//}
+	//Serial_print(&huart2," %s","\n" );
+	HAL_UART_Receive_DMA(huart, Rx3Data,UART_BUFFER);
 }
 
 void evaluateScreen( struct screenManager *sm )
@@ -153,19 +161,11 @@ void selectScreen( struct screenManager *sm )
 void initModules()
 {
   int err = -1;
-  DFPCMS_getStatus();
-  HAL_Delay(50);
+  dfpcms_initiation();
   dfpcms_pause();
-  HAL_Delay(50);
-  dfpcms_pause();
-  HAL_Delay(50);
-  dfpcms_pause();
-  HAL_Delay(50);
-  dfpcms_pause();
-  HAL_Delay(50);
-  dfpcms_waitingPlayPause(STATUS_PAUSE);
+  //dfpcms_waitingPlayPause(STATUS_PAUSE);
   ID = readID();
-  serialPrint( &huart2, "id: %x\n", ID && 0xffff);
+  Serial_print( &huart2, "id: %x\n", ID && 0xffff);
   HAL_Delay(100);
   tft_init(ID);
   setRotation(1);
@@ -214,7 +214,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   
   HAL_TIM_Base_Start(&htim3);
-  HAL_UART_Receive_DMA(&huart3, Rx3Data, SEQ_SIZE_CMD);
+  HAL_UART_Receive_DMA(&huart3, Rx3Data, UART_BUFFER);
 
   initModules();
 

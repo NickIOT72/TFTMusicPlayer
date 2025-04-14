@@ -75,6 +75,7 @@ bool selectedBar = false;
 uint8_t setVol = 20;
 
 bool allowChangePlayer = false;
+uint8_t playStatus = 0;
 
 struct timeCounter timeVerificationPlayer;
 
@@ -122,7 +123,7 @@ void setTrackText()
   textTrack.color = TURKEY_LIGTH;
   textTrack.f = mono12x7bold;
   textTrack.size = 1;
-  sprintf( textTrack.text, "Trk%d ", currentSong);
+  sprintf( textTrack.text, "Trk%d ", currentSong-1);
   textTrack.xo = 100;
   textTrack.yo = 280;
 }
@@ -335,11 +336,13 @@ void checkOptionsPlayer(struct joystick *js)
     selectOptionBar(barSelection);
     if ( barSelection == 1 )
     {
-      serialPrint(&huart2 , "%s", "Go to next song\r\n");
-      dfpcms_waitingPlayPause(STATUS_PAUSE);
+      Serial_print(&huart2 , "%s", "Go to next song\r\n");
+      dfpcms_pause();
+      //dfpcms_waitingPlayPause(STATUS_PAUSE);
       //statusSong = false;
-      currentSong = currentSong < dfpcms_getLocalNumberOfSongs( )-1?currentSong + 1 :0;
-      dfpcms_waitingSetupSong(currentSong);
+      currentSong = currentSong < dfpcms_getLocalNumberOfSongs( )?currentSong + 1 :0;
+      dfpcms_setSong(currentSong);
+      //dfpcms_waitingSetupSong(currentSong);
       currentSong = dfpcms_getCurrentSong();
       //statusSong = true;
       //drawPlayButton();
@@ -348,15 +351,18 @@ void checkOptionsPlayer(struct joystick *js)
       text_draw(&textTrack);
       statusSong = true;
       drawPlayButton();
-      dfpcms_waitingPlayPause(STATUS_PLAY);
+      dfpcms_play();
+      //dfpcms_waitingPlayPause(STATUS_PLAY);
       timeCounter_resetTimer( &timeVerificationPlayer );
       counterStatus = 0;
     }
     else if ( barSelection == 2 )
     {
-      serialPrint(&huart2 , "%s", "Go to Play\r\n");
+      Serial_print(&huart2 , "%s", "Go to Play\r\n");
       statusSong = !statusSong;
-      !statusSong?dfpcms_waitingPlayPause(STATUS_PAUSE):dfpcms_waitingResume();
+      !statusSong?dfpcms_pause():dfpcms_resume();
+      playStatus = !statusSong?1:2;
+      //!statusSong?dfpcms_waitingPlayPause(STATUS_PAUSE):dfpcms_waitingResume();
       if ( statusSong )
       {
         timeCounter_resetTimer( &timeVerificationPlayer );
@@ -366,11 +372,13 @@ void checkOptionsPlayer(struct joystick *js)
     }
     else if ( barSelection == 3 )
     {
-      serialPrint(&huart2 , "%s", "Go to prev song\r\n");
-      dfpcms_waitingPlayPause(STATUS_PAUSE);
+      Serial_print(&huart2 , "%s", "Go to prev song\r\n");
+      dfpcms_pause();
+      //dfpcms_waitingPlayPause(STATUS_PAUSE);
       //statusSong = false;
-      currentSong = currentSong > 0?currentSong - 1 :dfpcms_getLocalNumberOfSongs( )-1;
-      dfpcms_waitingSetupSong(currentSong);
+      currentSong = currentSong > 1?currentSong -1 :dfpcms_getLocalNumberOfSongs( );
+      dfpcms_setSong(currentSong);
+      //dfpcms_waitingSetupSong(currentSong);
       currentSong = dfpcms_getCurrentSong();
       //statusSong = true;
       //drawPlayButton();
@@ -379,7 +387,8 @@ void checkOptionsPlayer(struct joystick *js)
       text_draw(&textTrack);
       statusSong = true;
       drawPlayButton();
-      dfpcms_waitingPlayPause(STATUS_PLAY);
+      dfpcms_play();
+      //dfpcms_waitingPlayPause(STATUS_PLAY);
       timeCounter_resetTimer( &timeVerificationPlayer );
       counterStatus = 0;
     }
@@ -392,11 +401,12 @@ void checkOptionsPlayer(struct joystick *js)
   {
     if ( js->adc_y < 500  )
     {
-      serialPrint(&huart2 , "%s", "Decrease Vol\r\n");
+      Serial_print(&huart2 , "%s", "Decrease Vol\r\n");
       if ( setVol > 0 ) {
         setVol -= 1;
         volumeEquivalent = map( setVol, 0, 30, 0, VOLT_EXT_CIRC_R - VOLT_INT_INTERNAL_DISTANCE );
-        dfpcms_waitingVolume(setVol);
+        dfpcms_setVolumeVal( setVol );
+        //dfpcms_waitingVolume(setVol);
         setVol = dfpcms_getVolume();
         setVolumneGraph();
         drawVol();
@@ -404,11 +414,12 @@ void checkOptionsPlayer(struct joystick *js)
     }
     else if ( js->adc_y > 3500 )
     {
-      serialPrint(&huart2 , "%s", "Increase Vol\r\n");
+      Serial_print(&huart2 , "%s", "Increase Vol\r\n");
       if ( setVol < 30 ){
         setVol += 1;
         volumeEquivalent = map( setVol, 0, 30, 0, VOLT_EXT_CIRC_R - VOLT_INT_INTERNAL_DISTANCE );
-        dfpcms_waitingVolume(setVol);
+        dfpcms_setVolumeVal( setVol );
+        //dfpcms_waitingVolume(setVol);
         setVol = dfpcms_getVolume();
         setVolumneGraph();
         drawVol();
@@ -694,7 +705,8 @@ void initMusic()
   //dfpcms_pause();
   //dfpcms_pause();
   volumeEquivalent = map( setVol, 0, 30, 0, VOLT_EXT_CIRC_R - VOLT_INT_INTERNAL_DISTANCE );
-  dfpcms_waitingVolume(setVol);
+  dfpcms_setVolumeVal( setVol );
+  //dfpcms_waitingVolume(setVol);
   setVol = dfpcms_getVolume();
   /*if ( prevStatus != currentSong )
   { 
@@ -706,14 +718,24 @@ void initMusic()
     deselectOptionBar(barSelection);
     barSelection = 2;
   }*/
-  if ( prevStatus != currentSong )statusSong = true;
+  //if ( prevStatus != currentSong )statusSong = true;
   setTrackText();
   fillRoundRect(90 , 264 , 65, 25, 0 , WHITE);
   text_draw(&textTrack);
   setVolumneGraph();
   drawVol();
+  DFPCMS_getStatus();
+  HAL_Delay(25);
+  DFPCMS_getStatus();
+  if( !dfpcms_getStatusLocal() && playStatus != 1 )
+  {
+    dfpcms_play();
+    statusSong = true;
+  }
   selectOptionBar(barSelection);
-  if ( prevStatus != currentSong ) dfpcms_waitingPlayPause(STATUS_PLAY);;
+  //statusSong = false;
+  //if ( prevStatus != currentSong ) dfpcms_play();
+  //if ( prevStatus != currentSong ) dfpcms_waitingPlayPause(STATUS_PLAY);;
 }
 
 int screenPlayer_show()
@@ -785,10 +807,11 @@ int screenPlayer_eval(struct screenManager *sm)
   timeCounter_verifyTimer(&timeVerificationPlayer);
   if ( timeVerificationPlayer.timerReached )
   {
-    if ( dfpcms_getStatusLocal() && statusSong )
+    if ( !dfpcms_getStatusLocal() && statusSong )
     {
-      uint8_t newSong = currentSong == dfpcms_getLocalNumberOfSongs( ) -1 ? 0 : currentSong +1;
-      dfpcms_waitingSetupSong( newSong );
+      uint8_t newSong = currentSong == dfpcms_getLocalNumberOfSongs( ) ? 0 : currentSong +1;
+      dfpcms_setSong(newSong);
+      //dfpcms_waitingSetupSong( newSong );
       initMusic( );
       timeCounter_resetTimer( &timeVerificationPlayer );
       counterStatus = 0;

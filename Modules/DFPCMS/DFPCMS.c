@@ -1,10 +1,14 @@
 #include "DFPCMS.h"
+#include "dfminiplayer.h"
 #include "Serial.h"
 
 //UART_HandleTypeDef *huart_dfpcms;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
 
+#if defined(SERIAL_DFPLAYERMINI)
+    struct DFPlayerMiniData dfpl;
+#endif
 
 uint8_t DFPCMS_sequence[6] = {START_BYTE,0,0,0,0,END_BYTE};
 
@@ -17,7 +21,7 @@ int deviceSong = -1;
 bool deviceInitializeze = false;
 bool waitingForUartResponse = false;
 uint8_t prevSong = 0;
-bool statusDevice = true;
+uint8_t statusDevice = true;
 
 void dfpcms_clearBuf( )
 {
@@ -28,7 +32,7 @@ void dfpcms_clearBuf( )
 void dfpcms_init()
 {
   //huart_dfpcms = huartdf;
-  serialPrint( &huart2, "Init %s module\r\n", "DPFCMS");
+  Serial_print( &huart2, "Init %s module\r\n", "DPFCMS");
   dfpcms_initiation();
 }
 void dfpcms_resetInit()
@@ -48,7 +52,7 @@ void dfpcms_readInfo( uint8_t *buf , uint8_t size )
     {
     case GETNUMSONGS_CMD:
       numberOfSongs = buf[2];
-      serialPrint( &huart2 , "Number of Songs:%2d\r\n", numberOfSongs);
+      Serial_print( &huart2 , "Number of Songs:%2d\r\n", numberOfSongs);
       break;
     case INIT_CMD:
     case PLAY_CMD:
@@ -57,27 +61,27 @@ void dfpcms_readInfo( uint8_t *buf , uint8_t size )
     case NEXT_CMD:
     case RESUME_CMD:
       uint8_t Verf = buf[2];
-      if ( Verf ) {
-        serialPrint( &huart2 , "CMS %x respond successfully\r\n", buf[1]);
+      if ( Verf > 0 ) {
+        Serial_print( &huart2 , "CMS %x respond successfully\r\n", buf[1]);
         if ( buf[1] == INIT_CMD) deviceInitializeze = true;
       }
-      else {serialPrint( &huart2 , "CMS %x respond error\r\n", buf[1]);}
+      else {Serial_print( &huart2 , "CMS %x respond error\r\n", buf[1]);}
       break;
     case SETVOL_CMD:
       deviceVolume = buf[3];
-      serialPrint( &huart2 , "Device Volume:%2d\r\n", deviceVolume);
+      Serial_print( &huart2 , "Device Volume:%2d\r\n", deviceVolume);
       break;
     case SETEQ_CMD:
       deviceEQ = buf[2];
-      serialPrint( &huart2 , "Device EQ:%2d\r\n", deviceEQ);
+      Serial_print( &huart2 , "Device EQ:%2d\r\n", deviceEQ);
       break;
     case SETSONG_CMD:
       deviceSong = buf[2];
-      serialPrint( &huart2 , "Device Song:%2d\r\n", deviceSong);
+      Serial_print( &huart2 , "Device Song:%2d\r\n", deviceSong);
       break;
     case STATUS_CMD:
-      statusDevice = (bool)buf[2];
-      serialPrint( &huart2 , "Device Status:%s\r\n", statusDevice?"OFF":"ON");
+      statusDevice = (uint8_t)buf[2];
+      Serial_print( &huart2 , "Device Status:%s\r\n", statusDevice==0||statusDevice==2?"OFF":"ON");
       break;
     case GETVOL_CMD:
       break;
@@ -93,39 +97,99 @@ bool dfpcms_getInit()
 }	
 void dfpcms_initiation()
 {
-  dfpcms_sendCms( INIT_CMD );
+  #if defined(SERIAL_ESP32)
+      dfpcms_sendCms( INIT_CMD );
+  #elif defined(SERIAL_DFPLAYERMINI)
+      dfpl._timeOutDuration = 500;
+      dfpl._sending[0] = 0x7E; //{0x7E, 0xFF, 06, 00, 01, 00, 00, 00, 00, 0xEF};
+      dfpl._sending[1] = 0xFF;
+      dfpl._sending[2] = 06;
+      dfpl._sending[3] = 00;
+      dfpl._sending[4] = 01;
+      dfpl._sending[5] = 00;
+      dfpl._sending[6] = 00;
+      dfpl._sending[7] = 00;
+      dfpl._sending[8] = 00;
+      dfpl._sending[9] = 0xEF;
+      dfpl._receivedIndex = 0;
+      dfpl.device = DFPLAYER_DEVICE_SD;
+      dfpl._isAvailable = false;
+      dfpl._isSending = false;
+      DFPLayerMini_begin(&dfpl,true,true);
+      dfpcms_pause();
+      dfpcms_setVolumeVal( deviceVolume );
+      deviceInitializeze = true;
+  #endif
 }
 void dfpcms_play()
 {
-  dfpcms_sendCms( PLAY_CMD );
+  #if defined(SERIAL_ESP32)
+      dfpcms_sendCms( PLAY_CMD );
+  #elif defined(SERIAL_DFPLAYERMINI)
+      DFPLayerMini_play(&dfpl,deviceSong);
+  #endif
+}
+
+void dfpcms_stop()
+{
+  #if defined(SERIAL_ESP32)
+      dfpcms_sendCms( PLAY_CMD );
+  #elif defined(SERIAL_DFPLAYERMINI)
+  DFPLayerMini_stop(&dfpl);
+  #endif
 }
 void dfpcms_pause()
 {
-  dfpcms_sendCms( PAUSE_CMD );
+  #if defined(SERIAL_ESP32)
+      dfpcms_sendCms( PAUSE_CMD );
+  #elif defined(SERIAL_DFPLAYERMINI)
+      DFPLayerMini_pause(&dfpl);
+  #endif
 }
 void dfpcms_resume()
 {
-  dfpcms_sendCms( RESUME_CMD );
+  #if defined(SERIAL_ESP32)
+      dfpcms_sendCms( RESUME_CMD );
+  #elif defined(SERIAL_DFPLAYERMINI)
+      DFPLayerMini_start(&dfpl);
+  #endif
 }
 void dfpcms_previous()
 {
-  dfpcms_sendCms( PREV_CMD );
+  #if defined(SERIAL_ESP32)
+      dfpcms_sendCms( PREV_CMD );
+  #elif defined(SERIAL_DFPLAYERMINI)
+      DFPLayerMini_previous(&dfpl);
+  #endif
 }
 void dfpcms_next()
 {
-  dfpcms_sendCms( NEXT_CMD );
+  #if defined(SERIAL_ESP32)
+      dfpcms_sendCms( NEXT_CMD );
+  #elif defined(SERIAL_DFPLAYERMINI)
+      DFPLayerMini_next(&dfpl);
+  #endif
 }
 void dfpcms_setVolume( bool volume )
 {
-  uint8_t vol = volume ? VOLUP_CMD : VOLDOWN_CMD;
-  dfpcms_sendCms( vol );
+  #if defined(SERIAL_ESP32)
+      uint8_t vol = volume ? VOLUP_CMD : VOLDOWN_CMD;
+      dfpcms_sendCms( vol );
+  #elif defined(SERIAL_DFPLAYERMINI)
+      volume ? DFPLayerMini_volumeUp(&dfpl): DFPLayerMini_volumeDown(&dfpl);
+  #endif
 }
 void dfpcms_setVolumeVal( uint8_t volume )
 {
-  DFPCMS_sequence[1] = VOLSET_CMD;
-  for( uint8_t i = 0; i < 3; i++) DFPCMS_sequence[2+i] = 0;
-  DFPCMS_sequence[2] = volume;
-  dfpcms_sendInfo ( DFPCMS_sequence , SEQ_SIZE_CMD );
+  #if defined(SERIAL_ESP32)
+      DFPCMS_sequence[1] = VOLSET_CMD;
+      for( uint8_t i = 0; i < 3; i++) DFPCMS_sequence[2+i] = 0;
+      DFPCMS_sequence[2] = volume;
+      dfpcms_sendInfo ( DFPCMS_sequence , SEQ_SIZE_CMD );
+  #elif defined(SERIAL_DFPLAYERMINI)
+      DFPLayerMini_volume(&dfpl, volume);
+      deviceVolume = volume;
+  #endif
 }
 int dfpcms_getVolume( )
 {
@@ -133,10 +197,15 @@ int dfpcms_getVolume( )
 }
 void dfpcms_setSong( uint8_t song )
 {
-  DFPCMS_sequence[1] = SETSONG_CMD;
-  for( uint8_t i = 0; i < 3; i++) DFPCMS_sequence[2+i] = 0;
-  DFPCMS_sequence[2] = song;
-  dfpcms_sendInfo ( DFPCMS_sequence , SEQ_SIZE_CMD );
+  #if defined(SERIAL_ESP32)
+      DFPCMS_sequence[1] = SETSONG_CMD;
+      for( uint8_t i = 0; i < 3; i++) DFPCMS_sequence[2+i] = 0;
+      DFPCMS_sequence[2] = song;
+      dfpcms_sendInfo ( DFPCMS_sequence , SEQ_SIZE_CMD );
+  #elif defined(SERIAL_DFPLAYERMINI)
+      DFPLayerMini_play(&dfpl, song);
+      deviceSong = song;
+  #endif
 }
 int dfpcms_getCurrentSong( )
 {
@@ -144,9 +213,13 @@ int dfpcms_getCurrentSong( )
 }
 void dfpcms_getNumberOfSongs( )
 {
-  DFPCMS_sequence[1] = GETNUMSONGS_CMD;
-  for( uint8_t i = 0; i < 3; i++) DFPCMS_sequence[2+i] = 0;
-  dfpcms_sendInfo ( DFPCMS_sequence , SEQ_SIZE_CMD );
+  #if defined(SERIAL_ESP32)
+      DFPCMS_sequence[1] = GETNUMSONGS_CMD;
+      for( uint8_t i = 0; i < 3; i++) DFPCMS_sequence[2+i] = 0;
+      dfpcms_sendInfo ( DFPCMS_sequence , SEQ_SIZE_CMD );
+  #elif defined(SERIAL_DFPLAYERMINI)
+      numberOfSongs = DFPLayerMini_readFileCounts(&dfpl);
+  #endif
 }
 int dfpcms_getLocalNumberOfSongs( )
 {
@@ -154,10 +227,14 @@ int dfpcms_getLocalNumberOfSongs( )
 }
 void dfpcms_setEQ( uint8_t eq )
 {
-  DFPCMS_sequence[1] = SETEQ_CMD;
-  for( uint8_t i = 0; i < 3; i++) DFPCMS_sequence[2+i] = 0;
-  DFPCMS_sequence[2] = eq;
-  dfpcms_sendInfo ( DFPCMS_sequence , SEQ_SIZE_CMD );
+  #if defined(SERIAL_ESP32)
+      DFPCMS_sequence[1] = SETEQ_CMD;
+      for( uint8_t i = 0; i < 3; i++) DFPCMS_sequence[2+i] = 0;
+      DFPCMS_sequence[2] = eq;
+      dfpcms_sendInfo ( DFPCMS_sequence , SEQ_SIZE_CMD );
+  #elif defined(SERIAL_DFPLAYERMINI)
+      deviceEQ = (uint8_t)DFPLayerMini_readEQ(&dfpl);
+  #endif
 }
 int dfpcms_getEQ()
 {
@@ -165,7 +242,7 @@ int dfpcms_getEQ()
 }	
 void dfpcms_sendInfo( uint8_t *buf , uint8_t size )
 {
-  serialWrite( &huart3 , buf , size );
+  Serial_write( &huart3 , buf , size );
   dfpcms_clearBuf();
 }
 void dfpcms_sendCms( uint8_t data )
@@ -187,11 +264,15 @@ int dfpcms_getPrevSong()
 
 void DFPCMS_getStatus()
 {
-  dfpcms_sendCms( STATUS_CMD  );
+  #if defined(SERIAL_ESP32)
+    dfpcms_sendCms( STATUS_CMD  );
+  #elif defined(SERIAL_DFPLAYERMINI)
+    statusDevice = (uint8_t)DFPLayerMini_readState(&dfpl);
+  #endif
 }
 bool dfpcms_getStatusLocal()
 {
-  return statusDevice;
+  return !(statusDevice==0||statusDevice==2);
 }
 
 
@@ -201,13 +282,15 @@ void dfpcms_waitingInitication( )
   {
     waitingForUartResponse = true;
     dfpcms_initiation();
-    uint8_t countUartWait = 0;
-    while (waitingForUartResponse && countUartWait < 50)
-    {
-      /* code */
-      HAL_Delay(50);
-      countUartWait += 1;
-    }
+    #if defined(SERIAL_ESP32)
+      uint8_t countUartWait = 0;
+      while (waitingForUartResponse && countUartWait < 50)
+      {
+        /* code */
+        HAL_Delay(50);
+        countUartWait += 1;
+      }
+    #endif
     
   }
   waitingForUartResponse = false;
@@ -219,13 +302,15 @@ void dfpcms_waitingSetupSong( uint8_t song  )
   {
     waitingForUartResponse = true;
     dfpcms_setSong(song);
-    uint8_t countUartWait = 0;
-    while (waitingForUartResponse && countUartWait < 50)
-    {
-      /* code */
-      HAL_Delay(50);
-      countUartWait += 1;
-    }
+    #if defined(SERIAL_ESP32)
+      uint8_t countUartWait = 0;
+      while (waitingForUartResponse && countUartWait < 50)
+      {
+        /* code */
+        HAL_Delay(50);
+        countUartWait += 1;
+      }
+    #endif
   }
   waitingForUartResponse = false;
 }
@@ -236,6 +321,7 @@ void dfpcms_waitingVolume( uint8_t volume )
   {
     waitingForUartResponse = true;
     dfpcms_setVolumeVal( volume );
+    #if defined(SERIAL_ESP32)
     uint8_t countUartWait = 0;
     while (waitingForUartResponse && countUartWait < 50)
     {
@@ -243,6 +329,7 @@ void dfpcms_waitingVolume( uint8_t volume )
       HAL_Delay(50);
       countUartWait += 1;
     }
+  #endif
   }
   waitingForUartResponse = false;
 }
@@ -253,6 +340,7 @@ void dfpcms_waitingPlayPause( bool stat )
   {
     waitingForUartResponse = true;
     stat? dfpcms_pause() : dfpcms_play();
+    #if defined(SERIAL_ESP32)
     uint8_t countUartWait = 0;
     while (waitingForUartResponse && countUartWait < 50)
     {
@@ -260,6 +348,7 @@ void dfpcms_waitingPlayPause( bool stat )
       HAL_Delay(50);
       countUartWait += 1;
     }
+  #endif
     DFPCMS_getStatus();
     HAL_Delay(50);
   }
@@ -272,6 +361,7 @@ void dfpcms_waitingResume()
   {
     waitingForUartResponse = true;
     dfpcms_resume();
+    #if defined(SERIAL_ESP32)
     uint8_t countUartWait = 0;
     while (waitingForUartResponse && countUartWait < 50)
     {
@@ -279,6 +369,7 @@ void dfpcms_waitingResume()
       HAL_Delay(50);
       countUartWait += 1;
     }
+  #endif
     DFPCMS_getStatus();
     HAL_Delay(50);
   }

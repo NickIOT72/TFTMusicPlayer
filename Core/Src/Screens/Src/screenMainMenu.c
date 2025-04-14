@@ -139,11 +139,15 @@ void checkOptions(struct joystick *js)
     selectorTrackList.backgroundColor = WHITE;
     triangle_draw(&selectorTrackList);
     int fgsong = dfpcms_getCurrentSong();
-    if ( fgsong != trackPage*TRACKS_PER_PAGE + trackListDisplayPosition )
+    if ( fgsong != trackPage*TRACKS_PER_PAGE + trackListDisplayPosition + 1)
     {
-      dfpcms_waitingPlayPause(STATUS_PAUSE);
+      dfpcms_stop();
+      //dfpcms_waitingPlayPause(STATUS_PAUSE);
       setStatusSongFromMainMenu(false);
-      dfpcms_waitingSetupSong(trackPage*TRACKS_PER_PAGE + trackListDisplayPosition);
+      int h = trackPage*TRACKS_PER_PAGE + trackListDisplayPosition+1;
+      dfpcms_setSong( h);
+      dfpcms_stop();
+      //dfpcms_waitingSetupSong(trackPage*TRACKS_PER_PAGE + trackListDisplayPosition);
 
       //dfpcms_setSong(trackPage*TRACKS_PER_PAGE + trackListDisplayPosition);
       //dfpcms_setPrevSong(trackPage*TRACKS_PER_PAGE + trackListDisplayPosition );
@@ -221,14 +225,14 @@ int screenMainMenu_show()
   
   
   int currentSong = dfpcms_getCurrentSong();
-  if ( currentSong == -1 )
+  if ( currentSong <= 0 )
   {
     trackPage = 0;
     trackListDisplayPosition = 0;
   }
   else{
-    trackPage = currentSong/TRACKS_PER_PAGE;
-    trackListDisplayPosition = currentSong%TRACKS_PER_PAGE;
+    trackPage = (currentSong-1)/TRACKS_PER_PAGE;
+    trackListDisplayPosition = (currentSong-1)%TRACKS_PER_PAGE;
   }
 
   setUpListOfSongs();
@@ -278,13 +282,15 @@ int screenMainMenu_eval(struct screenManager *sm)
   }
   if ( timeCounter_verifyTimer(&timeVerificationMain) )
   {
-    if ( dfpcms_getStatusLocal() && returnSongStatus() )
+    if ( !dfpcms_getStatusLocal() && returnSongStatus() )
     {
-      uint8_t newSong = dfpcms_getCurrentSong() == dfpcms_getLocalNumberOfSongs( ) -1 ? 0 : dfpcms_getCurrentSong() +1;
-      dfpcms_waitingSetupSong( newSong );
+      uint8_t newSong = dfpcms_getCurrentSong() == dfpcms_getLocalNumberOfSongs( ) ? 1 : dfpcms_getCurrentSong() +1;
+      //dfpcms_waitingSetupSong( newSong );
+      dfpcms_setSong(newSong);
       setSongFromMainMenu(newSong);
       setStatusSongFromMainMenu(true);
-      dfpcms_waitingPlayPause(STATUS_PLAY);
+      dfpcms_play();
+      //dfpcms_waitingPlayPause(STATUS_PLAY);
       DFPCMS_getStatus();
       timeCounter_resetTimer( &timeVerificationMain );
       counterStatusMain = 0;

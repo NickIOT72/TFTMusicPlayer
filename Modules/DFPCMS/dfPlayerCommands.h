@@ -28,4 +28,5 @@
  * 
  */
 
-#define SEQ_SIZE_CMD 6 
+#define SEQ_SIZE_CMD 6
+#define DFMINIPLAYER_BUFFER_SIZE 10

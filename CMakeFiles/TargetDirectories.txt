@@ -1,0 +1,7 @@
+C:/Users/Nicolas/Documents/Work/Portfolio/Proyects/TFTMusicPlayer/CMakeFiles/TFTMusicPlayer.dir
+C:/Users/Nicolas/Documents/Work/Portfolio/Proyects/TFTMusicPlayer/CMakeFiles/edit_cache.dir
+C:/Users/Nicolas/Documents/Work/Portfolio/Proyects/TFTMusicPlayer/CMakeFiles/rebuild_cache.dir
+C:/Users/Nicolas/Documents/Work/Portfolio/Proyects/TFTMusicPlayer/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
+C:/Users/Nicolas/Documents/Work/Portfolio/Proyects/TFTMusicPlayer/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir
+C:/Users/Nicolas/Documents/Work/Portfolio/Proyects/TFTMusicPlayer/Libraries/tft/CMakeFiles/edit_cache.dir
+C:/Users/Nicolas/Documents/Work/Portfolio/Proyects/TFTMusicPlayer/Libraries/tft/CMakeFiles/rebuild_cache.dir
