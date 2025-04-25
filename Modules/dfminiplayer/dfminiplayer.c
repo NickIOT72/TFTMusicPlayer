@@ -36,12 +36,6 @@ void DFPLayerMini_setTimeOut(struct DFPlayerMiniData *dfp, unsigned long timeOut
 
 void DFPLayerMini_sendStack(struct DFPlayerMiniData *dfp)
 {
-  if (dfp->_sending[Stack_ACK]) {  //if the ack mode is on wait until the last transmition
-    while (dfp->_isSending) {
-      HAL_Delay(25);
-      DFPLayerMini_waitAvailable(dfp,0);
-    }
-  }
   
 #ifdef _DEBUG
   Serial_print(DEBUG_UART ,"%s", "\nSending data: ");
@@ -53,6 +47,15 @@ void DFPLayerMini_sendStack(struct DFPlayerMiniData *dfp)
   Serial_write(DF_UART ,dfp->_sending, DFPLAYER_SEND_LENGTH);
   dfp->_timeOutTimer = HAL_GetTick();
   dfp->_isSending = dfp->_sending[Stack_ACK];
+
+  uint8_t counter_send = 0;
+  if (dfp->_sending[Stack_ACK]) {  //if the ack mode is on wait until the last transmition
+    while (dfp->_isSending && counter_send < 1) {
+      HAL_Delay(5);
+      DFPLayerMini_waitAvailable(dfp,0);
+      counter_send += 1;
+    }
+  }
 
   if (!dfp->_sending[Stack_ACK]) { //if the ack mode is off wait 10 ms after one transmition.
     HAL_Delay(10);
@@ -500,12 +503,20 @@ bool DFPLayerMini_waitAvailable(struct DFPlayerMiniData *dfp , unsigned long dur
   if (!duration) {
     duration = dfp->_timeOutDuration;
   }
-  while (!DFPLayerMini_available(dfp)){
-    if (HAL_GetTick() - timer > duration) {
-      return DFPLayerMini_handleError(dfp,TimeOut,0);
+  uint8_t counter_f = 0;
+  while( counter_f < 4 )
+  {
+    while (!DFPLayerMini_available(dfp)){
+      if (HAL_GetTick() - timer > duration) {
+        return DFPLayerMini_handleError(dfp,TimeOut,0);
+      }
+      HAL_Delay(0);
     }
-    HAL_Delay(0);
+    HAL_Delay(5);
+    counter_f += 1;
+    timer = HAL_GetTick();
   }
+  
   return true;
 }
 

@@ -28,13 +28,17 @@ uint8_t Serial_read()
 
 void Serial_pushData(uint8_t* data, uint8_t size)
 {
-	if( rx_data_position > 10 )
+	uint8_t startByte = 0;
+	for ( int i = 0; i < size; i++ )
 	{
-		int h = 0;
+		if ( data[i] == 0x7E ){
+			startByte = i;
+			break; 
+		}
 	}
 	for ( int i = 0; i < size; i++ )
 	{
-		RX_data[rx_data_position] = data[i];
+		RX_data[rx_data_position] = data[ (startByte+i)%size];
 		rx_data_position += 1;
 		rx_counter_data_position += 1;
 		rx_data_position %= BUFFER_LENGTH;

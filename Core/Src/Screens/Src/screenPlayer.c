@@ -123,7 +123,7 @@ void setTrackText()
   textTrack.color = TURKEY_LIGTH;
   textTrack.f = mono12x7bold;
   textTrack.size = 1;
-  sprintf( textTrack.text, "Trk%d ", currentSong-1);
+  sprintf( textTrack.text, "Trk%d ", currentSong);
   textTrack.xo = 100;
   textTrack.yo = 280;
 }
@@ -340,7 +340,7 @@ void checkOptionsPlayer(struct joystick *js)
       dfpcms_pause();
       //dfpcms_waitingPlayPause(STATUS_PAUSE);
       //statusSong = false;
-      currentSong = currentSong < dfpcms_getLocalNumberOfSongs( )?currentSong + 1 :0;
+      currentSong = currentSong < dfpcms_getLocalNumberOfSongs( )?currentSong + 1 :1;
       dfpcms_setSong(currentSong);
       //dfpcms_waitingSetupSong(currentSong);
       currentSong = dfpcms_getCurrentSong();
@@ -718,7 +718,7 @@ void initMusic()
     deselectOptionBar(barSelection);
     barSelection = 2;
   }*/
-  //if ( prevStatus != currentSong )statusSong = true;
+  if ( prevStatus != currentSong )statusSong = true;
   setTrackText();
   fillRoundRect(90 , 264 , 65, 25, 0 , WHITE);
   text_draw(&textTrack);
@@ -727,7 +727,7 @@ void initMusic()
   DFPCMS_getStatus();
   HAL_Delay(25);
   DFPCMS_getStatus();
-  if( !dfpcms_getStatusLocal() && playStatus != 1 )
+  if( !dfpcms_getStatusLocal() && playStatus != 1 || statusSong)
   {
     dfpcms_play();
     statusSong = true;
@@ -799,7 +799,7 @@ int screenPlayer_eval(struct screenManager *sm)
   joystick_getValuesByTimer(&js2 , checkOptionsPlayer );
   HAL_Delay(1);
   counterStatus += 1;
-  if ( counterStatus >= 200 )
+  if ( counterStatus >= 100 )
   {
     DFPCMS_getStatus();
     counterStatus = 0;
@@ -809,7 +809,8 @@ int screenPlayer_eval(struct screenManager *sm)
   {
     if ( !dfpcms_getStatusLocal() && statusSong )
     {
-      uint8_t newSong = currentSong == dfpcms_getLocalNumberOfSongs( ) ? 0 : currentSong +1;
+      dfpcms_pause();
+      uint8_t newSong = currentSong == dfpcms_getLocalNumberOfSongs( ) ? 1 : currentSong +1;
       dfpcms_setSong(newSong);
       //dfpcms_waitingSetupSong( newSong );
       initMusic( );

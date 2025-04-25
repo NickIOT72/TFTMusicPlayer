@@ -275,7 +275,7 @@ int screenMainMenu_eval(struct screenManager *sm)
   joystick_getValuesByTimer(&js2 , checkOptions );
   HAL_Delay(1);
   counterStatusMain += 1;
-  if ( counterStatusMain >= 200 )
+  if ( counterStatusMain >= 100 )
   {
     DFPCMS_getStatus();
     counterStatusMain = 0;
@@ -284,14 +284,12 @@ int screenMainMenu_eval(struct screenManager *sm)
   {
     if ( !dfpcms_getStatusLocal() && returnSongStatus() )
     {
+      dfpcms_stop();
       uint8_t newSong = dfpcms_getCurrentSong() == dfpcms_getLocalNumberOfSongs( ) ? 1 : dfpcms_getCurrentSong() +1;
       //dfpcms_waitingSetupSong( newSong );
-      dfpcms_setSong(newSong);
       setSongFromMainMenu(newSong);
-      setStatusSongFromMainMenu(true);
-      dfpcms_play();
-      //dfpcms_waitingPlayPause(STATUS_PLAY);
-      DFPCMS_getStatus();
+      dfpcms_setSong(newSong);
+      setStatusSongFromMainMenu(false);
       timeCounter_resetTimer( &timeVerificationMain );
       counterStatusMain = 0;
     }

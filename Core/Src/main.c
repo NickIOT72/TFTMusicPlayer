@@ -86,6 +86,7 @@ static void MX_ADC1_Init(void);
 #endif
 
 int isSizeRxed = 0;
+
 uint16_t size = 0;
 
 uint16_t ID = 0;
@@ -94,12 +95,14 @@ struct screenManager scrmng;
 
 void HAL_UART_RxCpltCallback( UART_HandleTypeDef *huart )
 {
+  //HAL_UART_DMAStop(&huart);
 	Serial_pushData(Rx3Data, UART_BUFFER);
-	//Serial_print(&huart2," %s","R: " );
-	//for( int i = 0; i < UART_BUFFER; i++ ){
-	//	Serial_print(&huart2,"%1X ",Rx3Data[i] );
-	//}
-	//Serial_print(&huart2," %s","\n" );
+	Serial_print(&huart2," %s","R: " );
+	for( int i = 0; i < UART_BUFFER; i++ ){
+		Serial_print(&huart2,"%1X ",Rx3Data[i] );
+	}
+	Serial_print(&huart2," %s","\n" );
+  //memset(Rx3Data, 0, UART_BUFFER);
 	HAL_UART_Receive_DMA(huart, Rx3Data,UART_BUFFER);
 }
 
@@ -168,7 +171,7 @@ void initModules()
   Serial_print( &huart2, "id: %x\n", ID && 0xffff);
   HAL_Delay(100);
   tft_init(ID);
-  setRotation(1);
+  setRotation(3);
   scrmng.totalScreens = 5;
   err = screenManager_init(&scrmng);
   scrmng.actualScreen = 1;
