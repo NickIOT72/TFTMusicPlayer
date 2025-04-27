@@ -54,10 +54,10 @@ ADC_HandleTypeDef hadc1;
 
 TIM_HandleTypeDef htim3;
 
+UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart2;
-UART_HandleTypeDef huart3;
-DMA_HandleTypeDef hdma_usart3_rx;
-DMA_HandleTypeDef hdma_usart3_tx;
+DMA_HandleTypeDef hdma_uart5_rx;
+DMA_HandleTypeDef hdma_uart5_tx;
 
 /* USER CODE BEGIN PV */
 
@@ -69,8 +69,8 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM3_Init(void);
-static void MX_USART3_UART_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_UART5_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -96,13 +96,19 @@ struct screenManager scrmng;
 void HAL_UART_RxCpltCallback( UART_HandleTypeDef *huart )
 {
   //HAL_UART_DMAStop(&huart);
-	Serial_pushData(Rx3Data, UART_BUFFER);
-	Serial_print(&huart2," %s","R: " );
-	for( int i = 0; i < UART_BUFFER; i++ ){
-		Serial_print(&huart2,"%1X ",Rx3Data[i] );
-	}
-	Serial_print(&huart2," %s","\n" );
+  //bool allow_r = true;
+  //allow_r = Rx3Data[0]==0 && Rx3Data[1]==0 && Rx3Data[2]==0 && Rx3Data[3]==0 && Rx3Data[4]==0 && Rx3Data[5]==0 && Rx3Data[6]==0 && Rx3Data[7]==0 && Rx3Data[8]==0 && Rx3Data[9]==0;
+  //allow_r = !allow_r;
+  //if(allow_r  ){
+    Serial_pushData(Rx3Data, UART_BUFFER);
+	  Serial_print(&huart2," %s","R: " );
+	  for( int i = 0; i < UART_BUFFER; i++ ){
+	  	Serial_print(&huart2,"%1X ",Rx3Data[i] );
+	  }
+	  Serial_print(&huart2," %s","\n" );
   //memset(Rx3Data, 0, UART_BUFFER);
+  //}
+	
 	HAL_UART_Receive_DMA(huart, Rx3Data,UART_BUFFER);
 }
 
@@ -212,12 +218,12 @@ int main(void)
   MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_TIM3_Init();
-  MX_USART3_UART_Init();
   MX_ADC1_Init();
+  MX_UART5_Init();
   /* USER CODE BEGIN 2 */
   
   HAL_TIM_Base_Start(&htim3);
-  HAL_UART_Receive_DMA(&huart3, Rx3Data, UART_BUFFER);
+  HAL_UART_Receive_DMA(&huart5, Rx3Data, UART_BUFFER);
 
   initModules();
 
@@ -399,6 +405,39 @@ static void MX_TIM3_Init(void)
 }
 
 /**
+  * @brief UART5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_UART5_Init(void)
+{
+
+  /* USER CODE BEGIN UART5_Init 0 */
+
+  /* USER CODE END UART5_Init 0 */
+
+  /* USER CODE BEGIN UART5_Init 1 */
+
+  /* USER CODE END UART5_Init 1 */
+  huart5.Instance = UART5;
+  huart5.Init.BaudRate = 9600;
+  huart5.Init.WordLength = UART_WORDLENGTH_8B;
+  huart5.Init.StopBits = UART_STOPBITS_1;
+  huart5.Init.Parity = UART_PARITY_NONE;
+  huart5.Init.Mode = UART_MODE_TX_RX;
+  huart5.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart5.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN UART5_Init 2 */
+
+  /* USER CODE END UART5_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -432,39 +471,6 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
-  * @brief USART3 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART3_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART3_Init 0 */
-
-  /* USER CODE END USART3_Init 0 */
-
-  /* USER CODE BEGIN USART3_Init 1 */
-
-  /* USER CODE END USART3_Init 1 */
-  huart3.Instance = USART3;
-  huart3.Init.BaudRate = 9600;
-  huart3.Init.WordLength = UART_WORDLENGTH_8B;
-  huart3.Init.StopBits = UART_STOPBITS_1;
-  huart3.Init.Parity = UART_PARITY_NONE;
-  huart3.Init.Mode = UART_MODE_TX_RX;
-  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART3_Init 2 */
-
-  /* USER CODE END USART3_Init 2 */
-
-}
-
-/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -474,12 +480,12 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
-  /* DMA1_Stream1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
-  /* DMA1_Stream3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
+  /* DMA1_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+  /* DMA1_Stream7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
 
 }
 
@@ -491,14 +497,15 @@ static void MX_DMA_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, LCD_RST_Pin|LCD_D1_Pin, GPIO_PIN_RESET);
@@ -542,14 +549,22 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PC11 */
+  GPIO_InitStruct.Pin = GPIO_PIN_11;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
   /*Configure GPIO pin : JS_SW_Pin */
   GPIO_InitStruct.Pin = JS_SW_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(JS_SW_GPIO_Port, &GPIO_InitStruct);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */

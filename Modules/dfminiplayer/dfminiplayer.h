@@ -112,6 +112,8 @@ struct DFPlayerMiniData
   uint8_t _receivedIndex;
   //uint8_t device = DFPLAYER_DEVICE_SD;
   uint8_t device;
+  UART_HandleTypeDef df_uart;
+  UART_HandleTypeDef debug_uart;
 
   
   uint8_t _handleType;

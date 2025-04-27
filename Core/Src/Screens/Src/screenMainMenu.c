@@ -262,7 +262,7 @@ int screenMainMenu_init( struct screenManager *sm  )
   js2.swPin = JS_SW_Pin;
   js2.hadc_js = &hadc1;
   js2.adcChannels[0] = 12;
-  js2.adcChannels[1] = 13;
+  js2.adcChannels[1] = 10;
 
   js2.tm.delay = 50;
 

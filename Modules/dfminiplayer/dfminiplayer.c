@@ -1,11 +1,6 @@
 #include "dfminiplayer.h"
 #include "Serial.h"
 
-extern UART_HandleTypeDef huart3;
-extern UART_HandleTypeDef huart2;
-#define DF_UART &huart3
-#define DEBUG_UART &huart2
-
 uint16_t calculateCheckSum(uint8_t *buffer);
 void uint16ToArray(uint16_t value, uint8_t *array);
 uint16_t arrayToUint16(uint8_t *array);
@@ -38,13 +33,13 @@ void DFPLayerMini_sendStack(struct DFPlayerMiniData *dfp)
 {
   
 #ifdef _DEBUG
-  Serial_print(DEBUG_UART ,"%s", "\nSending data: ");
+  Serial_print(&dfp->debug_uart ,"%s", "\nSending data: ");
   for( int i = 0; i < 10; i++ ){
-  		Serial_print(DEBUG_UART,"%1X ",dfp->_sending[i] );
+  		Serial_print(&dfp->debug_uart,"%1X ",dfp->_sending[i] );
   }
-  Serial_print(DEBUG_UART ,"%s", "\n");
+  Serial_print(&dfp->debug_uart ,"%s", "\n");
 #endif
-  Serial_write(DF_UART ,dfp->_sending, DFPLAYER_SEND_LENGTH);
+  Serial_write(&dfp->df_uart ,dfp->_sending, DFPLAYER_SEND_LENGTH);
   dfp->_timeOutTimer = HAL_GetTick();
   dfp->_isSending = dfp->_sending[Stack_ACK];
 
@@ -444,9 +439,9 @@ bool DFPLayerMini_available(struct DFPlayerMiniData *dfp){
     if (dfp->_receivedIndex == 0) {
     	dfp->_received[Stack_Header] = Serial_read();
 #ifdef _DEBUG
-    	Serial_print(DEBUG_UART ,"%s", "received:");
-    	Serial_print(DEBUG_UART,"%1X",dfp->_received[dfp->_receivedIndex] );
-    	Serial_print(DEBUG_UART ,"%s", " ");
+    	Serial_print(&dfp->debug_uart ,"%s", "received:");
+    	Serial_print(&dfp->debug_uart,"%1X",dfp->_received[dfp->_receivedIndex] );
+    	Serial_print(&dfp->debug_uart ,"%s", " ");
 #endif
       if (dfp->_received[Stack_Header] == 0x7E) {
     	  dfp->_receivedIndex += 1;
@@ -455,8 +450,8 @@ bool DFPLayerMini_available(struct DFPlayerMiniData *dfp){
     else{
     	dfp->_received[dfp->_receivedIndex] = Serial_read();
 #ifdef _DEBUG
-    	Serial_print(DEBUG_UART,"%1X",dfp->_received[dfp->_receivedIndex] );
-    	Serial_print(DEBUG_UART ,"%s", " ");
+    	Serial_print(&dfp->debug_uart,"%1X",dfp->_received[dfp->_receivedIndex] );
+    	Serial_print(&dfp->debug_uart ,"%s", " ");
 #endif
       switch (dfp->_receivedIndex) {
         case Stack_Version:
@@ -471,7 +466,7 @@ bool DFPLayerMini_available(struct DFPlayerMiniData *dfp){
           break;
         case Stack_End:
 #ifdef _DEBUG
-        	Serial_print(DEBUG_UART ,"%s", "\n");
+        	Serial_print(&dfp->debug_uart ,"%s", "\n");
 #endif
           if (dfp->_received[dfp->_receivedIndex] != 0xEF) {
             return DFPLayerMini_handleError(dfp,WrongStack,0);
@@ -503,8 +498,14 @@ bool DFPLayerMini_waitAvailable(struct DFPlayerMiniData *dfp , unsigned long dur
   if (!duration) {
     duration = dfp->_timeOutDuration;
   }
-  uint8_t counter_f = 0;
-  while( counter_f < 4 )
+  while (!DFPLayerMini_available(dfp)){
+    if (HAL_GetTick() - timer > duration) {
+      return DFPLayerMini_handleError(dfp,TimeOut,0);
+    }
+    HAL_Delay(0);
+  }
+  /*uint8_t counter_f = 0;
+  while( counter_f < 1 )
   {
     while (!DFPLayerMini_available(dfp)){
       if (HAL_GetTick() - timer > duration) {
@@ -515,7 +516,7 @@ bool DFPLayerMini_waitAvailable(struct DFPlayerMiniData *dfp , unsigned long dur
     HAL_Delay(5);
     counter_f += 1;
     timer = HAL_GetTick();
-  }
+  }*/
   
   return true;
 }

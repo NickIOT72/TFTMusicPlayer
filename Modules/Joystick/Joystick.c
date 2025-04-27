@@ -33,12 +33,13 @@ int joystick_getADCvalues(struct joystick *js)
   if (status != HAL_OK) {
     Error_Handler_js();
   }
-  for( int i=0; i < sizeof(js->adcChannels)/sizeof(js->adcChannels[0]); ++i) {
+  for( int i=0; i < sizeof(js->adcChannels)/sizeof(js->adcChannels[0]); i++) {
     status = HAL_ADC_PollForConversion(js->hadc_js, HAL_MAX_DELAY);
     if (status != HAL_OK) {
       Error_Handler_js();
     }
     adc_r[i] = HAL_ADC_GetValue(js->hadc_js);
+    HAL_Delay(1);
   }
   status = HAL_ADC_Stop(js->hadc_js);
   if (status != HAL_OK) {

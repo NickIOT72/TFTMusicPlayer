@@ -530,14 +530,14 @@ int screenVerification_init( struct screenManager *sm  )
   int err = -1;
   sm->s.tc.delay = 0;
   err = screenVerification_show();
-  timeVerification.delay = 100;
+  timeVerification.delay = 200;
   timeCounter_init( &timeVerification );
   timeCounter_initTimer( &timeVerification );
   js2.sw_port = JS_SW_GPIO_Port;
   js2.swPin = JS_SW_Pin;
   js2.hadc_js = &hadc1;
   js2.adcChannels[0] = 12;
-  js2.adcChannels[1] = 13;
+  js2.adcChannels[1] = 10;
 
   js2.tm.delay = 50;
 

@@ -726,11 +726,10 @@ void initMusic()
   drawVol();
   DFPCMS_getStatus();
   HAL_Delay(25);
-  DFPCMS_getStatus();
-  if( !dfpcms_getStatusLocal() && playStatus != 1 || statusSong)
+  //DFPCMS_getStatus();
+  if( !dfpcms_getStatusLocal() && statusSong)
   {
     dfpcms_play();
-    statusSong = true;
   }
   selectOptionBar(barSelection);
   //statusSong = false;
@@ -772,7 +771,7 @@ int screenPlayer_init( struct screenManager *sm  )
   js2.swPin = JS_SW_Pin;
   js2.hadc_js = &hadc1;
   js2.adcChannels[0] = 12;
-  js2.adcChannels[1] = 13;
+  js2.adcChannels[1] = 10;
   js2.tm.delay = 50;
   joystick_init(&js2);
 

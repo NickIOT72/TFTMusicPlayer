@@ -4,7 +4,7 @@
 
 //UART_HandleTypeDef *huart_dfpcms;
 extern UART_HandleTypeDef huart2;
-extern UART_HandleTypeDef huart3;
+extern UART_HandleTypeDef huart5;
 
 #if defined(SERIAL_DFPLAYERMINI)
     struct DFPlayerMiniData dfpl;
@@ -115,6 +115,9 @@ void dfpcms_initiation()
       dfpl.device = DFPLAYER_DEVICE_SD;
       dfpl._isAvailable = false;
       dfpl._isSending = false;
+      dfpl.df_uart = huart5;
+      dfpl.debug_uart = huart2;
+
       DFPLayerMini_begin(&dfpl,true,true);
       dfpcms_pause();
       dfpcms_setVolumeVal( deviceVolume );
@@ -242,7 +245,7 @@ int dfpcms_getEQ()
 }	
 void dfpcms_sendInfo( uint8_t *buf , uint8_t size )
 {
-  Serial_write( &huart3 , buf , size );
+  Serial_write( &huart5 , buf , size );
   dfpcms_clearBuf();
 }
 void dfpcms_sendCms( uint8_t data )
